@@ -103,7 +103,7 @@ end
 
 
 # example with Kemp data
-kemp_fasta = fasta_readin("data/Kemp/Sequences.fasta")
+kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
 kemp_orfs = find_orfs(kemp_fasta)
 kemp_aa_orfs = translate_orfs(kemp_orfs)
 
