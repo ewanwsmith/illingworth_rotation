@@ -1,5 +1,31 @@
 # somewhere to put functions as they're worked on
 
+# convert Times.in to Dates.in
+
+using DataFrames
+using Dates
+using DelimitedFiles
+using CSV
+
+function convert_to_date(folder::String)
+    times_file = joinpath(folder, "Times.in")
+    dates_file = joinpath(folder, "Dates.in")
+    if !isfile(times_file)
+        error("File 'Times.in' not found in the folder.")
+    end
+
+    times = readdlm(times_file, '\t', Int)
+    dates = Date[]
+    for time in times
+        push!(dates, Date(1900, 1, 1) + Day(time))
+    end
+
+    df = DataFrame(Dates = dates)
+    CSV.write(dates_file, df)
+
+    return df
+end
+
 # read in fasta data
 function fasta_readin(filename::AbstractString)
     fasta_dict = Dict{String, String}()
