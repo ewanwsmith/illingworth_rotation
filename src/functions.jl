@@ -137,3 +137,30 @@ kemp_aa_orfs = translate_orfs(kemp_orfs)
 CAMP000427_fasta = fasta_readin("data/CAMP000427/Sequences.fa")
 CAMP000427_orfs = find_orfs(CAMP000427_fasta)
 CAMP000427_aa_orfs = translate_orfs(CAMP000427_orfs)
+
+#first go at an orf-matching function
+using DataFrames
+using BioSequences
+using BioAlignments
+
+function match_orfs(orfs::Dict{String, Vector{String}}, reference_orfs::Dict{String, String})
+    result_df = DataFrame(Reference_ORF_Name = String[], Sequence_Name = String[], Sequence = String[])
+
+    for (ref_name, ref_sequence) in reference_orfs
+        for (orfs_name, orfs_list) in orfs
+            for orf in orfs_list
+                global_alignment = BioAlignments.pairalign(BioAlignments.LevenshteinDistance(), orf, ref_sequence)
+                score = BioAlignments.score(global_alignment)
+                if score >= 0.8 * length(ref_sequence) # Adjust the threshold as needed
+                    push!(result_df, (ref_name, orfs_name, orf))
+                end
+            end
+        end
+    end
+
+    return result_df
+end
+
+#test
+ref_orfs = fasta_readin("data/reference/coding_sequences.fasta")
+match_orfs(kemp_orfs, ref_orfs)
