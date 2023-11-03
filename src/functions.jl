@@ -216,10 +216,3 @@ function match_orfs(orf_df::DataFrame, ref_orf_df::DataFrame)
     return result_df
 end
 
-
-#test
-kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
-kemp_orfs = find_orfs(kemp_fasta)
-ref_orfs = ref_readin("data/reference/coding_sequences.fasta")
-kemp_matched_orfs = match_orfs(kemp_orfs, ref_orfs)
-
