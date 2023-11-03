@@ -1,4 +1,3 @@
-using FastaIO
 using DataFrames
 using CSV
 
