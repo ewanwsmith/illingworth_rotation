@@ -184,7 +184,7 @@ end
 
 #first go at an orf-matching function
 function match_orfs(orf_df::DataFrame, ref_orf_df::DataFrame)
-    result_df = DataFrame(ORF_name = String[], Sequence_Name = String[], Start_Position = Int[], End_Position = Int[], Matched_Sequence = String[])
+    result_df = DataFrame(ORF_name = String[], Sequence_Name = String[], Start_Position = Int[], End_Position = Int[], Reference_Sequence = String[], Matched_Sequence = String[])
 
     for seq_name in unique(orf_df.Sequence_Name)
         orf_df_subset = filter(row -> row.Sequence_Name == seq_name, orf_df)
@@ -208,7 +208,7 @@ function match_orfs(orf_df::DataFrame, ref_orf_df::DataFrame)
             end
 
             if best_match_idx != 0
-                push!(result_df, (ref_orf_df[i, :ORF_name], seq_name, orf_df_subset[best_match_idx, :Start_Position], orf_df_subset[best_match_idx, :End_Position], orf_df_subset[best_match_idx, :Sequence]))
+                push!(result_df, (ref_orf_df[i, :ORF_name], seq_name, orf_df_subset[best_match_idx, :Start_Position], orf_df_subset[best_match_idx, :End_Position], ref_orf_df[i, :Sequence], orf_df_subset[best_match_idx, :Sequence]))
             end
         end
     end
