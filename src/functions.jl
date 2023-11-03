@@ -70,47 +70,6 @@ function find_orfs_in_sequence(sequence::String, sequence_name::String)
 end
 
 
-# find open reading grames & return as a list
-function find_orfs(fasta_dict::Dict{String, String})
-    orfs_dict = Dict{String, Vector{String}}()
-
-    for (name, sequence) in fasta_dict
-        orfs = find_long_orfs(sequence)
-        if !isempty(orfs)
-            orfs_dict[name] = orfs
-        end
-    end
-
-    return orfs_dict
-end
-
-function find_long_orfs(sequence::String)
-    orfs = Vector{String}()
-    for frame in 1:3
-        for i in 1:3:length(sequence) - 2
-            codon = sequence[i:i+2]
-            if codon == "ATG"
-                orf = codon
-                j = i + 3
-                while j <= length(sequence) - 2
-                    current_codon = sequence[j:j+2]
-                    if current_codon in ["TAA", "TAG", "TGA"]
-                        if length(orf) >= 90
-                            push!(orfs, orf)
-                        end
-                        break
-                    else
-                        orf *= current_codon
-                        j += 3
-                    end
-                end
-            end
-        end
-    end
-    return orfs
-end
-
-
 # translate dictionary ORFs
 function translate_orfs(fasta_dict::Dict{String, Vector{String}})
     translated_orfs = Dict{String, Vector{String}}()
