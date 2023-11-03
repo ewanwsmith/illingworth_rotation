@@ -1,7 +1,6 @@
 # somewhere to put functions as they're worked on
 
-# convert Times.in to Dates.in
-
+# convert Times.in to Dates.in 
 using DataFrames
 using Dates
 using DelimitedFiles
@@ -54,44 +53,47 @@ function fasta_readin(filename::AbstractString)
 end
 
 # find open reading grames & return as a list
-
 function find_orfs(fasta_dict::Dict{String, String})
-    all_orfs = Dict{String, Vector{String}}()
+    orfs_dict = Dict{String, Vector{String}}()
 
-    function find_orfs_in_seq(header, seq)
-        orfs = Vector{String}()
-        for frame in [seq, reverse(seq)]
-            for i in 1:3:length(frame) - 2
-                codon = frame[i:i + 2]
-                if codon == "ATG"
-                    current_orf = "ATG"
-                    j = i + 3
-                    while j <= length(frame) - 2
-                        current_codon = frame[j:j + 2]
-                        if current_codon in ["TAA", "TAG", "TGA"]
-                            push!(orfs, current_orf * current_codon)
-                            break
-                        else
-                            current_orf *= current_codon
-                            j += 3
+    for (name, sequence) in fasta_dict
+        orfs = find_long_orfs(sequence)
+        if !isempty(orfs)
+            orfs_dict[name] = orfs
+        end
+    end
+
+    return orfs_dict
+end
+
+function find_long_orfs(sequence::String)
+    orfs = Vector{String}()
+    for frame in 1:3
+        for i in 1:3:length(sequence) - 2
+            codon = sequence[i:i+2]
+            if codon == "ATG"
+                orf = codon
+                j = i + 3
+                while j <= length(sequence) - 2
+                    current_codon = sequence[j:j+2]
+                    if current_codon in ["TAA", "TAG", "TGA"]
+                        if length(orf) >= 90
+                            push!(orfs, orf)
                         end
+                        break
+                    else
+                        orf *= current_codon
+                        j += 3
                     end
                 end
             end
         end
-        return orfs
     end
-
-    for (header, sequence) in fasta_dict
-        orfs = find_orfs_in_seq(header, sequence)
-        all_orfs[header] = orfs
-    end
-
-    return all_orfs
+    return orfs
 end
 
-# translate dictionary ORFs
 
+# translate dictionary ORFs
 function translate_orfs(fasta_dict::Dict{String, Vector{String}})
     translated_orfs = Dict{String, Vector{String}}()
 
@@ -127,33 +129,30 @@ function translate_orfs(fasta_dict::Dict{String, Vector{String}})
     return translated_orfs
 end
 
-
-# example with Kemp data
-kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
-kemp_orfs = find_orfs(kemp_fasta)
-kemp_aa_orfs = translate_orfs(kemp_orfs)
-
-# example with CAMP000427 data
-CAMP000427_fasta = fasta_readin("data/CAMP000427/Sequences.fa")
-CAMP000427_orfs = find_orfs(CAMP000427_fasta)
-CAMP000427_aa_orfs = translate_orfs(CAMP000427_orfs)
-
 #first go at an orf-matching function
 using DataFrames
 using BioSequences
 using BioAlignments
 
 function match_orfs(orfs::Dict{String, Vector{String}}, reference_orfs::Dict{String, String})
-    result_df = DataFrame(Reference_ORF_Name = String[], Sequence_Name = String[], Sequence = String[])
+    result_df = DataFrame(Reference_orf_name = String[], Sample_name = String[], Sequence = String[])
 
     for (ref_name, ref_sequence) in reference_orfs
-        for (orfs_name, orfs_list) in orfs
+        for (seq_name, orfs_list) in orfs
+            best_score = 0
+            best_match = ""
+            best_seq = ""
             for orf in orfs_list
                 global_alignment = BioAlignments.pairalign(BioAlignments.LevenshteinDistance(), orf, ref_sequence)
                 score = BioAlignments.score(global_alignment)
-                if score >= 0.8 * length(ref_sequence) # Adjust the threshold as needed
-                    push!(result_df, (ref_name, orfs_name, orf))
+                if score >= best_score
+                    best_score = score
+                    best_match = seq_name
+                    best_seq = orf
                 end
+            end
+            if best_score >= 0.8 # Adjust thresholds as needed
+                push!(result_df, (ref_name, best_match, best_seq))
             end
         end
     end
@@ -161,6 +160,29 @@ function match_orfs(orfs::Dict{String, Vector{String}}, reference_orfs::Dict{Str
     return result_df
 end
 
+
 #test
+kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
+kemp_orfs = find_orfs(kemp_fasta)
 ref_orfs = fasta_readin("data/reference/coding_sequences.fasta")
-match_orfs(kemp_orfs, ref_orfs)
+kemp_matched_orfs = match_orfs(kemp_orfs, ref_orfs)
+
+# chop and change column names to be more manageable
+function split_orfs_df(df::DataFrame)
+    df = hcat(df,
+    DataFrame(reduce(vcat, permutedims.(split.(df.Reference_orf_name, '|'))),
+    [:Gene_accession_and_position, :ORF_name]))
+    select!(df, Not(:Reference_orf_name))
+    df = hcat(df,
+    DataFrame(reduce(vcat, permutedims.(split.(df.Gene_accession_and_position, ':'))),
+    [:Accession, :Position]))
+    select!(df, Not(:Gene_accession_and_position))
+    df = hcat(df,
+    DataFrame(reduce(vcat, permutedims.(split.(df.Position, '-'))),
+    [:Start, :End]))
+    select!(df, Not(:Position))
+    select!(df, [:Accession, :Sample_name, :ORF_name, :Start, :End, :Sequence])
+    return df
+end
+
+kemp_clean_orfs = split_orfs_df(kemp_matched_orfs)
