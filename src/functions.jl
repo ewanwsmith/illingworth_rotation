@@ -60,3 +60,44 @@ function translate_orfs(fasta_dict::Dict{String, Vector{String}})
 
     return translated_orfs
 end
+
+
+using CSV 
+using DataFrames
+
+matched427 = CSV.read("data/CAMP000427/matched_orfs.csv", DataFrame)
+
+# try for a variant finding function
+using DataFrames
+
+function find_variants(df::DataFrame)
+    result_df = DataFrame(
+        Sequence_Name = String[],
+        ORF_name = String[],
+        Original_Base = Char[],
+        Variant_Base = Char[],
+        Position = Int[]
+    )
+
+    for row in eachrow(df)
+        sequence_name = row.Sequence_Name
+        orf_name = row.ORF_name
+        reference_sequence = row.Reference_Sequence
+        matched_sequence = row.Matched_Sequence
+        start_position = row.Start_Position
+
+        for (i, (ref_base, match_base)) in enumerate(zip(reference_sequence, matched_sequence))
+            if ref_base != match_base
+                position = start_position + i
+                push!(result_df, (sequence_name, orf_name, ref_base, match_base, position))
+            end
+        end
+    end
+
+    return result_df
+end
+
+
+
+
+
