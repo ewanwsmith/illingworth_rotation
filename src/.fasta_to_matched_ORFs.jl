@@ -106,22 +106,46 @@ function find_orfs_in_sequence(sequence::String, sequence_name::String)
     min_orf_length = 90
     orfs = []
 
-    for i in 1:length(sequence) - 2
-        codon = sequence[i:i+2]
-        if codon == start_codon
+    i = 1
+    while i <= length(sequence) - 2
+        if sequence[i:i+2] == start_codon
             orf_start = i
-            for j in i+3:3:length(sequence)-2
+            j = i + 3
+
+            # Find ORF ending at first stop codon
+            while j <= length(sequence) - 2
                 codon = sequence[j:j+2]
                 if codon in stop_codons
                     orf_end = j + 2
                     orf_length = orf_end - orf_start + 1
                     if orf_length >= min_orf_length
-                        orf_sequence = sequence[orf_start:orf_end]
-                        push!(orfs, (sequence_name, orf_start, orf_end, orf_length, orf_sequence))
+                        orf_seq = sequence[orf_start:orf_end]
+                        push!(orfs, (sequence_name, orf_start, orf_end, orf_length, orf_seq))
                     end
                     break
                 end
+                j += 3
             end
+
+            # Find ORF ending at second stop codon
+            k = j + 3
+            while k <= length(sequence) - 2
+                codon = sequence[k:k+2]
+                if codon in stop_codons
+                    orf_end = k + 2
+                    orf_length = orf_end - orf_start + 1
+                    if orf_length >= min_orf_length
+                        orf_seq = sequence[orf_start:orf_end]
+                        push!(orfs, (sequence_name, orf_start, orf_end, orf_length, orf_seq))
+                    end
+                    break
+                end
+                k += 3
+            end
+
+            i = k + 3  # Move to the next potential start codon
+        else
+            i += 1
         end
     end
 
