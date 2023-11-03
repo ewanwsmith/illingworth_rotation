@@ -1,71 +1,31 @@
 # somewhere to put functions as they're worked on
 
-# read in fasta data
-function fasta_readin(filename::AbstractString)
-    fasta_dict = Dict{String, String}()
-    current_header = ""
-    current_sequence = ""
+# convert Times.in to Dates.in 
+using DataFrames
+using Dates
+using DelimitedFiles
+using CSV
 
-    open(filename) do file
-        for line in eachline(file)
-            if startswith(line, ">")
-                if current_header != ""
-                    fasta_dict[current_header] = current_sequence
-                    current_sequence = ""
-                end
-                current_header = strip(line[2:end])
-            else
-                current_sequence *= strip(line)
-            end
-        end
+function convert_to_date(folder::String)
+    times_file = joinpath(folder, "Times.in")
+    dates_file = joinpath(folder, "Dates.in")
+    if !isfile(times_file)
+        error("File 'Times.in' not found in the folder.")
     end
 
-    if current_header != ""
-        fasta_dict[current_header] = current_sequence
+    times = readdlm(times_file, '\t', Int)
+    dates = Date[]
+    for time in times
+        push!(dates, Date(1900, 1, 1) + Day(time))
     end
 
-    return fasta_dict
-end
+    df = DataFrame(Dates = dates)
+    CSV.write(dates_file, df)
 
-# find open reading grames & return as a list
-
-function find_orfs(fasta_dict::Dict{String, String})
-    all_orfs = Dict{String, Vector{String}}()
-
-    function find_orfs_in_seq(header, seq)
-        orfs = Vector{String}()
-        for frame in [seq, reverse(seq)]
-            for i in 1:3:length(frame) - 2
-                codon = frame[i:i + 2]
-                if codon == "ATG"
-                    current_orf = "ATG"
-                    j = i + 3
-                    while j <= length(frame) - 2
-                        current_codon = frame[j:j + 2]
-                        if current_codon in ["TAA", "TAG", "TGA"]
-                            push!(orfs, current_orf * current_codon)
-                            break
-                        else
-                            current_orf *= current_codon
-                            j += 3
-                        end
-                    end
-                end
-            end
-        end
-        return orfs
-    end
-
-    for (header, sequence) in fasta_dict
-        orfs = find_orfs_in_seq(header, sequence)
-        all_orfs[header] = orfs
-    end
-
-    return all_orfs
+    return df
 end
 
 # translate dictionary ORFs
-
 function translate_orfs(fasta_dict::Dict{String, Vector{String}})
     translated_orfs = Dict{String, Vector{String}}()
 
@@ -100,14 +60,3 @@ function translate_orfs(fasta_dict::Dict{String, Vector{String}})
 
     return translated_orfs
 end
-
-
-# example with Kemp data
-kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
-kemp_orfs = find_orfs(kemp_fasta)
-kemp_aa_orfs = translate_orfs(kemp_orfs)
-
-# example with CAMP000427 data
-CAMP000427_fasta = fasta_readin("data/CAMP000427/Sequences.fa")
-CAMP000427_orfs = find_orfs(CAMP000427_fasta)
-CAMP000427_aa_orfs = translate_orfs(CAMP000427_orfs)
