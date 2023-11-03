@@ -26,31 +26,49 @@ function convert_to_date(folder::String)
 end
 
 # read in fasta data
-function fasta_readin(filename::AbstractString)
-    fasta_dict = Dict{String, String}()
-    current_header = ""
-    current_sequence = ""
+using DataFrames
 
-    open(filename) do file
-        for line in eachline(file)
-            if startswith(line, ">")
-                if current_header != ""
-                    fasta_dict[current_header] = current_sequence
-                    current_sequence = ""
+function find_orfs(fasta_dict::Dict{String, String})
+    orfs_df = DataFrame(Sequence_Name = String[], Start_Position = Int[], End_Position = Int[], ORF_Length = Int[], ORF_Sequence = String[])
+
+    for (sequence_name, sequence) in fasta_dict
+        orfs = find_orfs_in_sequence(sequence, sequence_name)
+        for orf in orfs
+            push!(orfs_df, orf)
+        end
+    end
+
+    return orfs_df
+end
+
+function find_orfs_in_sequence(sequence::String, sequence_name::String)
+    start_codon = "ATG"
+    stop_codons = ["TAA", "TAG", "TGA"]
+    min_orf_length = 90
+    orfs = []
+
+    for i in 1:length(sequence) - 2
+        codon = sequence[i:i+2]
+        if codon == start_codon
+            orf_start = i
+            for j in i+3:3:length(sequence)-2
+                codon = sequence[j:j+2]
+                if codon in stop_codons
+                    orf_end = j + 2
+                    orf_length = orf_end - orf_start + 1
+                    if orf_length >= min_orf_length
+                        orf_sequence = sequence[orf_start:orf_end]
+                        push!(orfs, (sequence_name, orf_start, orf_end, orf_length, orf_sequence))
+                    end
+                    break
                 end
-                current_header = strip(line[2:end])
-            else
-                current_sequence *= strip(line)
             end
         end
     end
 
-    if current_header != ""
-        fasta_dict[current_header] = current_sequence
-    end
-
-    return fasta_dict
+    return orfs
 end
+
 
 # find open reading grames & return as a list
 function find_orfs(fasta_dict::Dict{String, String})
@@ -165,7 +183,7 @@ end
 kemp_fasta = fasta_readin("data/Kemp/Sequences.fa")
 kemp_orfs = find_orfs(kemp_fasta)
 ref_orfs = fasta_readin("data/reference/coding_sequences.fasta")
-kemp_matched_orfs = match_orfs(kemp_orfs, ref_orfs)
+#kemp_matched_orfs = match_orfs(kemp_orfs, ref_orfs)
 
 # chop and change column names to be more manageable
 function split_orfs_df(df::DataFrame)
@@ -185,4 +203,4 @@ function split_orfs_df(df::DataFrame)
     return df
 end
 
-kemp_clean_orfs = split_orfs_df(kemp_matched_orfs)
+#kemp_clean_orfs = split_orfs_df(kemp_matched_orfs)
