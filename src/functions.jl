@@ -66,17 +66,15 @@ using CSV
 using DataFrames
 
 matched427 = CSV.read("data/CAMP000427/matched_orfs.csv", DataFrame)
+matchedkemp = CSV.read("data/kemp/matched_orfs.csv", DataFrame)
 
 # try for a variant finding function
-using DataFrames
-
 function find_variants(df::DataFrame)
     result_df = DataFrame(
         Sequence_Name = String[],
         ORF_name = String[],
-        Original_Base = Char[],
-        Variant_Base = Char[],
-        Position = Int[]
+        Original_Base_Position = String[],
+        Variant_Base_Position = String[]
     )
 
     for row in eachrow(df)
@@ -88,8 +86,9 @@ function find_variants(df::DataFrame)
 
         for (i, (ref_base, match_base)) in enumerate(zip(reference_sequence, matched_sequence))
             if ref_base != match_base
-                position = start_position + i
-                push!(result_df, (sequence_name, orf_name, ref_base, match_base, position))
+                original_base_position = "$(start_position + i):$ref_base"
+                variant_base_position = "$(start_position + i):$match_base"
+                push!(result_df, (sequence_name, orf_name, original_base_position, variant_base_position))
             end
         end
     end
@@ -97,7 +96,21 @@ function find_variants(df::DataFrame)
     return result_df
 end
 
+variants427 = find_variants(matched427)
+variantskemp = find_variants(matchedkemp)
+
+using DataFrames
+
+function count_variants(df::DataFrame)
+    # Count rows per value of ORF_name
+    variants_by_ORF = combine(groupby(df, :ORF_name), nrow)
+
+    # Count rows per value of ORF_name and Sequence_Name
+    variants_by_ORF_by_sample = combine(groupby(df, [:ORF_name, :Sequence_Name]), nrow)
+
+    return variants_by_ORF, variants_by_ORF_by_sample
+end
 
 
-
-
+variant_count427, variant_seq_count427 = count_variants(variants427)
+variant_countkemp, variant_seq_countkemp = count_variants(variantskemp)
