@@ -42,10 +42,6 @@ function translate_orfs(fasta_dict::Dict{String, Vector{String}})
     return translated_orfs
 end
 
-
-using CSV 
-using DataFrames
-
 matched427 = CSV.read("data/CAMP000427/matched_orfs.csv", DataFrame)
 matchedkemp = CSV.read("data/kemp/matched_orfs.csv", DataFrame)
 
@@ -95,3 +91,4 @@ end
 
 variant_count427, variant_seq_count427 = count_variants(variants427)
 variant_countkemp, variant_seq_countkemp = count_variants(variantskemp)
+
