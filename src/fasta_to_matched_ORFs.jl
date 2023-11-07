@@ -1,7 +1,5 @@
 # take SARS-CoV_2 .fasta files, extract all possible open reading frames, and match these to NCBI reference ORFs
 
-# v1.0 - Ewan Smith 03/11/23
-
 #input paths to folders with .fasta files
 folder_list = ["data/CAMP000427", "data/CAMP001339", "data/CAMP001490",
                 "data/CAMP001523", "data/CAMP002274", "data/CAMP003468",
