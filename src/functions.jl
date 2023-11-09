@@ -81,9 +81,8 @@ function find_first_variants(df::DataFrame)
 end
 
 firstvariants427 = find_first_variants(matched427)
-firstvariantskemp = find_first_variants(matchedkemp)
 
-#pullout variants in 2:end samples 
+#pullout variants in 2:n samples 
 function find_subs_variants(df::DataFrame)
     result_df = DataFrame(
         Sequence_Name = String[],
@@ -109,7 +108,7 @@ function find_subs_variants(df::DataFrame)
                 if prev_base != curr_base
                     original_base_position = "$(start_position + j):$prev_base"
                     variant_base_position = "$(start_position + j):$curr_base"
-                    push!(result_df, (sub_df.Sequence_Name[i], sub_df.ORF_name[i], sub_df.Population[i], original_base_position, variant_base_position))
+                    push!(result_df, (sub_df.Sequence_Name[i], sub_df.ORF_name[i], string(sub_df.Population[i]), original_base_position, variant_base_position))
                 end
             end
         end
@@ -119,4 +118,3 @@ function find_subs_variants(df::DataFrame)
 end
 
 subsvariants427 = find_subs_variants(matched427)
-subsvariantskemp = find_subs_variants(matchedkemp)
