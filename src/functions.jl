@@ -1,6 +1,5 @@
 # somewhere to put functions as they're worked on
 
-# convert Times.in to Dates.in 
 using DataFrames
 using Dates
 using DelimitedFiles
@@ -45,27 +44,35 @@ end
 matched427 = CSV.read("data/CAMP000427/matched_orfs.csv", DataFrame)
 matchedkemp = CSV.read("data/kemp/matched_orfs.csv", DataFrame)
 
-# try for a variant finding function
-function find_variants(df::DataFrame)
+
+# pullout mismatches between first sequence in time / Px and reference sequence
+
+function find_first_variants(df::DataFrame)
     result_df = DataFrame(
         Sequence_Name = String[],
         ORF_name = String[],
-        Original_Base_Position = String[],
-        Variant_Base_Position = String[]
+        Original_Base = String[],
+        Variant_Base = String[]
     )
 
-    for row in eachrow(df)
-        sequence_name = row.Sequence_Name
-        orf_name = row.ORF_name
-        reference_sequence = row.Reference_Sequence
-        matched_sequence = row.Matched_Sequence
-        start_position = row.Start_Position
+    # Group the DataFrame by ORF_name
+    grouped_df = groupby(df, :ORF_name)
 
-        for (i, (ref_base, match_base)) in enumerate(zip(reference_sequence, matched_sequence))
+    for sub_df in grouped_df
+        # Sort the sub-dataframe by Date
+        sub_df = sort(sub_df, order(:Date))
+
+        # Extract the first Matched Sequence
+        first_matched_sequence = sub_df.Matched_Sequence[1]
+
+        reference_sequence = sub_df.Reference_Sequence[1]
+        start_position = sub_df.Start_Position[1]
+
+        for (i, (ref_base, match_base)) in enumerate(zip(reference_sequence, first_matched_sequence))
             if ref_base != match_base
                 original_base_position = "$(start_position + i):$ref_base"
                 variant_base_position = "$(start_position + i):$match_base"
-                push!(result_df, (sequence_name, orf_name, original_base_position, variant_base_position))
+                push!(result_df, (sub_df.Sequence_Name[1], sub_df.ORF_name[1], original_base_position, variant_base_position))
             end
         end
     end
@@ -73,22 +80,43 @@ function find_variants(df::DataFrame)
     return result_df
 end
 
-variants427 = find_variants(matched427)
-variantskemp = find_variants(matchedkemp)
+firstvariants427 = find_first_variants(matched427)
+firstvariantskemp = find_first_variants(matchedkemp)
 
-using DataFrames
+#pullout variants in 2:end samples 
+function find_subs_variants(df::DataFrame)
+    result_df = DataFrame(
+        Sequence_Name = String[],
+        ORF_name = String[],
+        Population = String[],
+        Original_Base = String[],
+        Variant_Base = String[]
+    )
 
-function count_variants(df::DataFrame)
-    # Count rows per value of ORF_name
-    variants_by_ORF = combine(groupby(df, :ORF_name), nrow)
+    # Group the DataFrame by ORF_name and Population
+    grouped_df = groupby(df, [:ORF_name, :Population])
 
-    # Count rows per value of ORF_name and Sequence_Name
-    variants_by_ORF_by_sample = combine(groupby(df, [:ORF_name, :Sequence_Name]), nrow)
+    for sub_df in grouped_df
+        # Sort the sub-dataframe by Date
+        sub_df = sort(sub_df, order(:Date))
 
-    return variants_by_ORF, variants_by_ORF_by_sample
+        for i in 2:size(sub_df, 1)
+            previous_sequence = sub_df.Matched_Sequence[i - 1]
+            current_sequence = sub_df.Matched_Sequence[i]
+            start_position = sub_df.Start_Position[i]
+
+            for (j, (prev_base, curr_base)) in enumerate(zip(previous_sequence, current_sequence))
+                if prev_base != curr_base
+                    original_base_position = "$(start_position + j):$prev_base"
+                    variant_base_position = "$(start_position + j):$curr_base"
+                    push!(result_df, (sub_df.Sequence_Name[i], sub_df.ORF_name[i], sub_df.Population[i], original_base_position, variant_base_position))
+                end
+            end
+        end
+    end
+
+    return result_df
 end
 
-
-variant_count427, variant_seq_count427 = count_variants(variants427)
-variant_countkemp, variant_seq_countkemp = count_variants(variantskemp)
-
+subsvariants427 = find_subs_variants(matched427)
+subsvariantskemp = find_subs_variants(matchedkemp)
