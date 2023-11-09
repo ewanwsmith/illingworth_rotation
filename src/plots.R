@@ -49,15 +49,12 @@ date_dat$Px_n <- as.factor(date_dat$Px_n)
 # dot plot of sequence dates
 time_plot <- 
     date_dat %>%
-    ggplot(aes(x = Date, y = Px_n, fill = Px_n)) +
+    ggplot(aes(x = Date, y = Px_n, fill = Date)) +
         geom_line(color="grey") +
-        geom_point(shape=21, color="black", size=6) +
-        scale_fill_viridis(discrete = TRUE, alpha = 0.6)
-        theme(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) +
-        theme_bw() +
-        theme(axis.ticks.x = element_text(angle = 90)
-        )
+        geom_point(shape=21, color="black", size=6, stat = "unique") +
+        scale_fill_viridis(discrete = TRUE, alpha = 0.8) +
+        theme(axis.text.x = element_text(angle = 270)) +
+        theme_linedraw()
+       
         
-
 plot(time_plot)
