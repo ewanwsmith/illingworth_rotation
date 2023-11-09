@@ -50,7 +50,7 @@ function ref_readin(file_path::AbstractString)
     [:Accession, :Position]))
     select!(df, Not(:Gene_accession_and_position))
     df = hcat(df,
-    DataFrame(reduce(vcat, permutedims.(split.(df.Position, '-'))),
+    DataFrame(reduce(vcat, permutedims.(split.(df.Position, ".."))),
     [:Start_Position, :End_Position]))
     select!(df, Not(:Position))
     select!(df, [:Accession, :ORF_name, :Start_Position, :End_Position, :Sequence])
