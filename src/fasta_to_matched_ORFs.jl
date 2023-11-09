@@ -169,17 +169,17 @@ println("Reading in reference open reading frames from: $reference_path")
 # run above functions
 function find_match_orfs(folder::String)
     fasta_file = joinpath(folder, "sequences.fa") #find sample .fasta files in folder
-    df = fasta_readin(fasta_file) #readin fasta file
     println("Running fasta_readin() function on folder: $folder")
+    df = fasta_readin(fasta_file) #readin fasta file
 
-    orfs_result = find_orfs(df) #find possible ORFs in fasta file
     println("Running find_orfs() function on folder: $folder")
-    match_orfs_result = match_orfs(orfs_result, ref_orfs) #find best matches to reference ORFs by length
+    orfs_result = find_orfs(df) #find possible ORFs in fasta file
     println("Running match_orfs() function on folder: $folder")
+    match_orfs_result = match_orfs(orfs_result, ref_orfs) #find best matches to reference ORFs by length
 
     csv_path = joinpath(folder, "matched_orfs.csv") 
-    CSV.write(csv_path, match_orfs_result) #write results to a CSV in sample folder
     println("Writing matched_orfs.csv to folder: $folder")
+    CSV.write(csv_path, match_orfs_result) #write results to a CSV in sample folder
 
     return match_orfs_result
 end
