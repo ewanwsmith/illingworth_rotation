@@ -7,17 +7,9 @@ folder_list = ["data/CAMP000427", "data/CAMP001339", "data/CAMP001490",
 using DataFrames
 using CSV
 using FileIO
-using DelimitedFiles
 
 
 #read .out files to .csv
-using DataFrames
-using CSV
-using FileIO
-using DataFrames
-using CSV
-using FileIO
-
 function variant_readin(folder::AbstractString)
     # Construct the file path for Variant_list.out
     variant_file_path = joinpath(folder, "Variant_list.out")
