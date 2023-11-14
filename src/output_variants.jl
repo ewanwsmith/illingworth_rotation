@@ -8,7 +8,6 @@ using DataFrames
 using CSV
 using FileIO
 
-
 #read .out files to .csv
 function variant_readin(folder::AbstractString)
     # Construct the file path for Variant_list.out
