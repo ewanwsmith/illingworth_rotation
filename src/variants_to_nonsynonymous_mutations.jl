@@ -79,44 +79,64 @@ function substitute_variants(dataframe::DataFrame)
     return dataframe
 end
 
-# find variant codons
-using DataFrames
-
-function find_codons(df::DataFrame)
-    # Initialize empty vectors for Original_Codon and Variant_Codon
-    original_codons = Vector{Union{Missing, String}}(missing, nrow(df))
-    variant_codons = Vector{Union{Missing, String}}(missing, nrow(df))
-    
-    # Iterate through each row in the DataFrame
-    for row in 1:nrow(df)
-        # Extract the relevant information from the row
-        sequence = string(df[row, :Sequence])
-        base_position = df[row, :Base_Position]
-        variant_sequence = string(df[row, :Variant_Sequence])
-        
-        # Check if the base position is valid
-        if base_position > length(sequence)
-            println("Warning: Base_Position exceeds the length of the sequence in row $row. Skipping.")
-            continue
-        end
-        
-        # Find the original codon
-        original_codon_start = max(1, base_position - 2)
-        original_codon_end = min(length(sequence), base_position)
-        original_codons[row] = sequence[original_codon_start:original_codon_end]
-        
-        # Find the variant codon
-        variant_codon_start = max(1, base_position - 2)
-        variant_codon_end = min(length(variant_sequence), base_position)
-        variant_codons[row] = variant_sequence[variant_codon_start:variant_codon_end]
+# find original codons
+function find_original_codons(df::DataFrame)
+    # Function to split a DNA sequence into codons
+    function split_into_codons(sequence)
+        return [sequence[i:i+2] for i in 1:3:length(sequence)-2]
     end
     
-    # Add the new columns to the original DataFrame
-    df[!, :Original_Codon] = original_codons
-    df[!, :Variant_Codon] = variant_codons
+    # Process each row in the DataFrame
+    codons = []
+    for row in 1:size(df, 1)
+        sequence = string(df[row, :Sequence])
+        base_position = df[row, :Base_Position]
+        
+        # Check if base_position is valid
+        if base_position < 1 || base_position > length(sequence)
+            throw(ArgumentError("Invalid Base_Position for row $row"))
+        end
+        
+        # Extract the codon based on the Base_Position
+        codon_index = (base_position - 1) ÷ 3 + 1
+        push!(codons, split_into_codons(sequence)[codon_index])
+    end
+    
+    # Add the codons as a new column in the DataFrame
+    df[!, :Original_Codon] = codons
     
     return df
 end
+
+# find variant codons
+function find_variant_codons(df::DataFrame)
+    # Function to split a DNA sequence into codons
+    function split_into_codons(sequence)
+        return [sequence[i:i+2] for i in 1:3:length(sequence)-2]
+    end
+    
+    # Process each row in the DataFrame
+    codons = []
+    for row in 1:size(df, 1)
+        sequence = string(df[row, :Variant_Sequence])
+        base_position = df[row, :Base_Position]
+        
+        # Check if base_position is valid
+        if base_position < 1 || base_position > length(sequence)
+            throw(ArgumentError("Invalid Base_Position for row $row"))
+        end
+        
+        # Extract the codon based on the Base_Position
+        codon_index = (base_position - 1) ÷ 3 + 1
+        push!(codons, split_into_codons(sequence)[codon_index])
+    end
+    
+    # Add the codons as a new column in the DataFrame
+    df[!, :Variant_Codon] = codons
+    
+    return df
+end
+
 
 function translate_codons(df)
     # Function to map codons to amino acids
@@ -157,16 +177,19 @@ for folder in folder_list
     variant_locations = locate_variants(folder, reference_path)
     println("running substitute_variants() function on folder: $folder")
     variant_sequences = substitute_variants(variant_locations)
-    println("running find_codons() function on folder: $folder")
-    variant_codons = find_codons(variant_sequences)
-#    println("running translate_codons() function on folder: $folder")
-#    variant_translated = translate_codons(variant_codons)
+    println("running find_original_codons() function on folder: $folder")
+    original_codons = find_original_codons(variant_sequences)
+    println("running find_variant_codons() function on folder: $folder")
+    variant_codons = find_variant_codons(original_codons)
+    println("running translate_codons() function on folder: $folder")
+    variant_translated = translate_codons(variant_codons)
 
     println("saving dataframe as variant_sequences.csv in folder: $folder")
- #   CSV.write(joinpath(folder, "variant_sequences.csv"), variant_translated)
+    CSV.write(joinpath(folder, "variant_sequences.csv"), variant_translated)
 end
 
 kemp_located = locate_variants("data/Kemp", reference_path)
 kemp_substituted = substitute_variants(kemp_located)
-kemp_codons = find_codons(kemp_substituted)
-kemp_translated = translate_codons(kemp_codons)
+kemp_original_codons = find_original_codons(kemp_substituted)
+kemp_variant_codons = find_variant_codons(kemp_original_codons)
+kemp_translated = translate_codons(kemp_variant_codons)
