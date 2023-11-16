@@ -1,49 +1,114 @@
-# input paths to folders with Variant_list.out files
-folder_list = ["data/CAMP000427", "data/CAMP001339", "data/CAMP001490",
-"data/CAMP001523", "data/CAMP002274", "data/CAMP003468",
-"data/CAMP004884", "data/CAMP007136", "data/Kemp"] 
+#load dependencies
+include("/Users/ewansmith/Documents/PhD/Rotation 1 - Illingworth/illingworth_rotation/src/fasta_to_matched_ORFs.jl")
 
-# input path to reference ORFs
-reference_path = "data/reference/coding_sequences.csv"
+# build consensus sequences for each ORF, save as .csv in folder
+function build_consensus(folder_path::AbstractString)
+    # Load the CSV file
+    csv_path = joinpath(folder_path, "matched_orfs.csv")
+    df = CSV.File(csv_path) |> DataFrame
+    
+    # Group by ORF_name
+    grouped_df = groupby(df, :ORF_name)
+    
+    # Initialize an empty DataFrame to store consensus sequences
+    consensus_df = DataFrame(ORF_name = String[],
+                             Start_Position = Int[], 
+                             End_Position = Int[], 
+                             Reference_Sequence = String[],
+                             Consensus_Sequence = String[])
+    
+    # Iterate over each group
+    for (group_idx, group) in enumerate(grouped_df)
+        orf_name = first(group[!, :ORF_name])
+        
+        # Sort the group by Date
+        sorted_group = sort(group, order(:Date))
+        
+        # Initialize consensus sequence with the first sequence
+        consensus_seq = collect(first(sorted_group.Matched_Sequence))
 
-# load dependencies
-using DataFrames
-using CSV
+        # Iterate over each position in the sequences
+        for i in 2:length(sorted_group.Matched_Sequence)
+            # Check if the current position has an 'N'
+            if consensus_seq[i] == 'N'
+                # Iterate over the sequences to find a non-'N' base
+                for row in eachrow(sorted_group)
+                    if row.Matched_Sequence[i] != 'N'
+                        consensus_seq[i] = row.Matched_Sequence[i]
+                        break
+                    end
+                end
+            end
+        end
+
+        # Convert the consensus sequence back to a string
+        consensus_seq_str = join(consensus_seq)
+        
+        # Retrieve other relevant information
+        start_pos = first(sorted_group.Start_Position)
+        end_pos = first(sorted_group.End_Position)
+        ref_seq = first(sorted_group.Reference_Sequence)
+        
+        # Add the consensus sequence to the DataFrame
+        push!(consensus_df, (ORF_name = orf_name, 
+                             Consensus_Sequence = consensus_seq_str,
+                             Start_Position = start_pos, 
+                             End_Position = end_pos, 
+                             Reference_Sequence = ref_seq))
+        
+    end
+    
+    # Save the consensus DataFrame to a CSV file
+    consensus_path = joinpath(folder_path, "Consensus_ORFs.csv")
+    CSV.write(consensus_path, consensus_df)
+    
+    return consensus_df
+end
+
 
 # find which ORF has each variant
-function locate_variants(folder::AbstractString, reference_orf_path::AbstractString)
+function locate_variants(folder_path::AbstractString, consensus_df::DataFrame)
     # Read Variant_list.csv into a DataFrame
-    variant_df = CSV.File(joinpath(folder, "Variant_list.csv"), types=[Int64, Char, Char], header=true) |> DataFrame
+    variant_list_path = joinpath(folder_path, "Variant_list.csv")
+    variant_df = CSV.File(variant_list_path, types=Dict(:Position => Int, :Original_Base => Char, :Variant_Base => Char)) |> DataFrame
 
-    # Read reference ORFs CSV into a DataFrame
-    reference_orf_df = CSV.File(reference_orf_path) |> DataFrame
+    # Initialize an empty DataFrame to store the results
+    result_df = DataFrame(
+        Variant_Position = Int[],
+        Original_Base = Char[],
+        Variant_Base = Char[],
+        Start_Position = Int[],
+        End_Position = Int[],
+        ORF_Name = String[],
+        Consensus_Sequence = String[]
+    )
 
-    # Initialize an empty DataFrame to store results
-    result_df = DataFrame(Variant_Position = Int[], Original_Base = Char[], Variant_Base = Char[],
-                          Start_Position = Int[], End_Position = Int[], ORF_Name = String[], Sequence = String[])
+    # Iterate over each row in the Variant_list DataFrame
+    for row_v in eachrow(variant_df)
+        variant_position = row_v.Position
 
-    # Iterate over each variant in Variant_list.csv
-    for row in eachrow(variant_df)
-        variant_position = row.Position
-        original_base = row.Original_Base
-        variant_base = row.Variant_Base
-
-        # Iterate over each ORF in reference ORFs DataFrame
-        for orf_row in eachrow(reference_orf_df)
-            start_position = orf_row.Start_Position
-            end_position = orf_row.End_Position
-            orf_name = orf_row.ORF_name
-            sequence = orf_row.Sequence
-
-            # Check if the variant_position is within the ORF range
-            if start_position <= variant_position <= end_position
-                push!(result_df, (variant_position, original_base, variant_base, start_position, end_position, orf_name, sequence))
+        # Iterate over each row in the consensus_df DataFrame
+        for row_o in eachrow(consensus_df)
+            # Check if the variant_position is within the range of the open reading frame
+            if variant_position >= row_o.Start_Position && variant_position <= row_o.End_Position
+                # Extract relevant information and append to result_df
+                push!(result_df, (
+                    variant_position,
+                    row_v.Original_Base[1],
+                    row_v.Variant_Base[1],
+                    row_o.Start_Position,
+                    row_o.End_Position,
+                    row_o.ORF_name,
+                    row_o.Consensus_Sequence
+                ))
+                break  # Break the inner loop since we found a match
             end
         end
     end
 
     return result_df
 end
+
 
 using DataFrames
 
@@ -58,7 +123,7 @@ function substitute_variants(dataframe::DataFrame)
     # Iterate over each row in the DataFrame
     for i in 1:nrow(dataframe)
         # Extract the original sequence
-        sequence = string(dataframe[i, :Sequence])
+        sequence = string(dataframe[i, :Consensus_Sequence])
 
         # Extract the variant position
         variant_position = dataframe[i, :Base_Position]
@@ -89,7 +154,7 @@ function find_original_codons(df::DataFrame)
     # Process each row in the DataFrame
     codons = []
     for row in 1:size(df, 1)
-        sequence = string(df[row, :Sequence])
+        sequence = string(df[row, :Consensus_Sequence])
         base_position = df[row, :Base_Position]
         
         # Check if base_position is valid
@@ -173,8 +238,10 @@ end
 
 # run above functions
 for folder in folder_list
+    println("running build_consensus() function on folder: $folder")
+    consensus_sequences = build_consensus(folder)
     println("running locate_variants() function on folder: $folder")
-    variant_locations = locate_variants(folder, reference_path)
+    variant_locations = locate_variants(folder, consensus_sequences)
     println("running substitute_variants() function on folder: $folder")
     variant_sequences = substitute_variants(variant_locations)
     println("running find_original_codons() function on folder: $folder")
@@ -188,7 +255,8 @@ for folder in folder_list
     CSV.write(joinpath(folder, "variant_sequences.csv"), variant_translated)
 end
 
-kemp_located = locate_variants("data/Kemp", reference_path)
+kemp_consensus = build_consensus("data/Kemp")
+kemp_located = locate_variants("data/Kemp", kemp_consensus)
 kemp_substituted = substitute_variants(kemp_located)
 kemp_original_codons = find_original_codons(kemp_substituted)
 kemp_variant_codons = find_variant_codons(kemp_original_codons)

@@ -1,1 +1,1 @@
-Variant_Position,Original_Base,Variant_Base,Start_Position,End_Position,ORF_Name,Sequence,Base_Position,Variant_Sequence,Original_Codon,Variant_Codon,Original_AA,Variant_AA,Is_Synonymous
+Variant_Position,Original_Base,Variant_Base,Start_Position,End_Position,ORF_Name,Consensus_Sequence,Base_Position,Variant_Sequence,Original_Codon,Variant_Codon,Original_AA,Variant_AA,Is_Synonymous
