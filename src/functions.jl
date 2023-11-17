@@ -118,3 +118,12 @@ function find_subs_variants(df::DataFrame)
 end
 
 subsvariants427 = find_subs_variants(matched427)
+
+# build consensus
+using CSV
+using DataFrames
+
+
+
+
+
