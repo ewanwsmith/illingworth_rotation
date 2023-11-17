@@ -1,7 +1,9 @@
 #load dependencies
 include("/Users/ewansmith/Documents/PhD/Rotation 1 - Illingworth/illingworth_rotation/src/fasta_to_matched_ORFs.jl")
 
-# build consensus sequences for each ORF, save as .csv in folder
+using CSV
+using DataFrames
+
 function build_consensus(folder_path::AbstractString)
     # Load the CSV file
     csv_path = joinpath(folder_path, "matched_orfs.csv")
@@ -11,7 +13,7 @@ function build_consensus(folder_path::AbstractString)
     grouped_df = groupby(df, :ORF_name)
     
     # Initialize an empty DataFrame to store consensus sequences
-    consensus_df = DataFrame(ORF_name = String[],
+    consensus_df = DataFrame(ORF_name = String[], 
                              Start_Position = Int[], 
                              End_Position = Int[], 
                              Reference_Sequence = String[],
@@ -20,27 +22,37 @@ function build_consensus(folder_path::AbstractString)
     # Iterate over each group
     for (group_idx, group) in enumerate(grouped_df)
         orf_name = first(group[!, :ORF_name])
+        println("Processing group $group_idx for ORF: $orf_name")
         
         # Sort the group by Date
         sorted_group = sort(group, order(:Date))
         
         # Initialize consensus sequence with the first sequence
         consensus_seq = collect(first(sorted_group.Matched_Sequence))
-
+        
         # Iterate over each position in the sequences
-        for i in 2:length(sorted_group.Matched_Sequence)
-            # Check if the current position has an 'N'
-            if consensus_seq[i] == 'N'
-                # Iterate over the sequences to find a non-'N' base
+        for i in 2:length(first(sorted_group.Matched_Sequence))
+            bases = Set(Char[])
+            
+            # Collect unique bases at the current position
+            for row in eachrow(sorted_group)
+                base = i <= length(row.Matched_Sequence) ? row.Matched_Sequence[i] : 'N'
+                push!(bases, base)
+            end
+            
+            # Check if 'N' is in the bases
+            if 'N' in bases
+                # Find the first non-'N' base or use the base from the reference sequence
                 for row in eachrow(sorted_group)
-                    if row.Matched_Sequence[i] != 'N'
-                        consensus_seq[i] = row.Matched_Sequence[i]
+                    base = i <= length(row.Matched_Sequence) ? row.Matched_Sequence[i] : 'N'
+                    if base != 'N'
+                        consensus_seq[i] = base
                         break
                     end
                 end
             end
         end
-
+        
         # Convert the consensus sequence back to a string
         consensus_seq_str = join(consensus_seq)
         
@@ -49,6 +61,13 @@ function build_consensus(folder_path::AbstractString)
         end_pos = first(sorted_group.End_Position)
         ref_seq = first(sorted_group.Reference_Sequence)
         
+        # Pad the end of the consensus sequence if it is shorter than the Reference_Sequence
+        if length(consensus_seq) < length(ref_seq)
+            padding_length = length(ref_seq) - length(consensus_seq)
+            padding = ref_seq[end - padding_length + 1:end]
+            consensus_seq_str *= padding
+        end
+        
         # Add the consensus sequence to the DataFrame
         push!(consensus_df, (ORF_name = orf_name, 
                              Consensus_Sequence = consensus_seq_str,
@@ -56,6 +75,7 @@ function build_consensus(folder_path::AbstractString)
                              End_Position = end_pos, 
                              Reference_Sequence = ref_seq))
         
+        println("Finished processing group $group_idx for ORF: $orf_name")
     end
     
     # Save the consensus DataFrame to a CSV file
