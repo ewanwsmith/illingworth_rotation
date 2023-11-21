@@ -220,4 +220,45 @@ function locate_variants(folder_path::String)
     return variant_locations_df
 end
 
+# pull out codon containing Variant_Base position
+function find_codons(df::DataFrame)
+    # Create a new column 'Original_Codon'
+    df.Original_Codon .= ""
+
+    for i in 1:nrow(df)
+        # Check if 'Sequence' column is missing
+        if ismissing(df[i, :Sequence])
+            continue
+        end
+
+        # Extract the sequence, variant position, start position, and original base
+        sequence = string(df[i, :Sequence])
+        variant_position = df[i, :Variant_Position]
+        start_position = df[i, :Start_Position]
+        original_base = df[i, :Original_Base]
+
+        # Calculate the adjusted variant position
+        adjusted_variant_position = variant_position - start_position
+
+        # Calculate the start position of the selected codon
+        codon_start_position = 3 * div(adjusted_variant_position, 3)
+
+        # Extract the codon containing the nth base
+        original_codon = sequence[codon_start_position + 1:codon_start_position + 3]
+
+        # Update the 'Original_Codon' column
+        df[i, :Original_Codon] = original_codon
+
+        # Check if Original_Base is contained within Original_Codon
+        if occursin(original_base, original_codon)
+            # Do something if it's contained
+        else
+            println("Warning: Original_Base is not contained within Original_Codon at row $i.")
+        end
+    end
+
+    return df
+end
+
 kemp_located = locate_variants("data/Kemp")
+kemp_codons = find_codons(kemp_located)
