@@ -203,7 +203,7 @@ function locate_variants(folder_path::String)
                 matching_row[1, :ORF_name],
                 matching_row[1, :Start_Position],
                 matching_row[1, :End_Position],
-                matching_row[1, :Matched_Sequence],  # Assuming this column is present in orfs_df
+                matching_row[1, :Matched_Sequence],
                 variants_df[i, :Position],
                 variants_df[i, :Original_Base],
                 variants_df[i, :Variant_Base]
