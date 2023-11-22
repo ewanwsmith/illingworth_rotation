@@ -58,8 +58,9 @@ end
 
 # find codon containing variant
 function find_codons(df::DataFrame)
-    # Create a new column 'Original_Codon'
+    # Create new columns 'Original_Codon' and 'Variant_Codon'
     df.Original_Codon .= ""
+    df.Variant_Codon .= ""
 
     for i in 1:nrow(df)
         # Check if 'Sequence' column is missing
@@ -72,12 +73,13 @@ function find_codons(df::DataFrame)
         variant_position = df[i, :Variant_Position]
         start_position = df[i, :Start_Position]
         original_base = df[i, :Original_Base]
+        variant_base = df[i, :Variant_Base]
 
         # Calculate the adjusted variant position
         adjusted_variant_position = variant_position - start_position
 
         # Calculate the start position of the selected codon
-        codon_start_position = 3 * div(adjusted_variant_position, 3)
+        codon_start_position = 3 * div(adjusted_variant_position, 3, RoundDown)
 
         # Extract the codon containing the nth base
         original_codon = sequence[codon_start_position + 1:codon_start_position + 3]
@@ -87,7 +89,11 @@ function find_codons(df::DataFrame)
 
         # Check if Original_Base is contained within Original_Codon
         if occursin(original_base, original_codon)
-            # Do something if it's contained
+            # Replace the base at adjusted_variant_position with Variant_Base
+            variant_codon = replace(original_codon, original_base => variant_base)
+
+            # Update 'Variant_Codon' column
+            df[i, :Variant_Codon] = variant_codon
         else
             println("Warning: Original_Base is not contained within Original_Codon at row $i.")
         end
@@ -96,5 +102,44 @@ function find_codons(df::DataFrame)
     return df
 end
 
+# translate codons 
+
+using DataFrames
+
+function translate_codons(df::DataFrame)
+    # Define a dictionary for codon to amino acid translation
+    codon_to_aa = Dict(
+        "AAA" => "K", "AAC" => "N", "AAG" => "K", "AAT" => "N",
+        "ACA" => "T", "ACC" => "T", "ACG" => "T", "ACT" => "T",
+        "AGA" => "R", "AGC" => "S", "AGG" => "R", "AGT" => "S",
+        "ATA" => "I", "ATC" => "I", "ATG" => "M", "ATT" => "I",
+        "CAA" => "Q", "CAC" => "H", "CAG" => "Q", "CAT" => "H",
+        "CCA" => "P", "CCC" => "P", "CCG" => "P", "CCT" => "P",
+        "CGA" => "R", "CGC" => "R", "CGG" => "R", "CGT" => "R",
+        "CTA" => "L", "CTC" => "L", "CTG" => "L", "CTT" => "L",
+        "GAA" => "E", "GAC" => "D", "GAG" => "E", "GAT" => "D",
+        "GCA" => "A", "GCC" => "A", "GCG" => "A", "GCT" => "A",
+        "GGA" => "G", "GGC" => "G", "GGG" => "G", "GGT" => "G",
+        "GTA" => "V", "GTC" => "V", "GTG" => "V", "GTT" => "V",
+        "TAA" => "*", "TAC" => "Y", "TAG" => "*", "TAT" => "Y",
+        "TCA" => "S", "TCC" => "S", "TCG" => "S", "TCT" => "S",
+        "TGA" => "*", "TGC" => "C", "TGG" => "W", "TGT" => "C",
+        "TTA" => "L", "TTC" => "F", "TTG" => "L", "TTT" => "F",
+    )
+
+    # Translate Original_Codon to Original_AA
+    df[!, :Original_AA] = [get(codon_to_aa, codon, "") for codon in df[:, :Original_Codon]]
+
+    # Translate Variant_Codon to Variant_AA
+    df[!, :Variant_AA] = [get(codon_to_aa, codon, "") for codon in df[:, :Variant_Codon]]
+
+    # Check if Original_AA and Variant_AA are synonymous
+    df[!, :Is_Synonymous] = ifelse.(df[:, :Original_AA] .== df[:, :Variant_AA], "Yes", "No")
+
+    return df
+end
+
+
 kemp_located = locate_variants("data/Kemp")
 kemp_codons = find_codons(kemp_located)
+kemp_translated = translate_codons(kemp_codons)
