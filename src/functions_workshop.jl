@@ -1,0 +1,184 @@
+# somewhere to put functions as they're worked on
+
+using CSV
+using DataFrames
+
+function locate_variants(folder_path::String)
+    # Read Variant_list.csv into variants_df
+    variants_path = joinpath(folder_path, "Variant_list.csv")
+    variants_df = CSV.read(variants_path, DataFrame)
+
+    # Read Consensus_ORFs.csv into orfs_df
+    orfs_path = joinpath(folder_path, "Consensus_ORFs.csv")
+    orfs_df = CSV.read(orfs_path, DataFrame)
+
+    # Initialize variant_locations_df
+    variant_locations_df = DataFrame(
+        ORF_name = String[],
+        Start_Position = Int[],
+        End_Position = Int[],
+        Sequence = String[],
+        Variant_Position = Int[],
+        Original_Base = String[],
+        Variant_Base = String[]
+    )
+
+    # Count of no matches
+    no_match_count = 0
+
+    # Iterate through each row in variants_df
+    for i in 1:size(variants_df, 1)
+        position_value = variants_df[i, :Position]
+
+        # Find the row in orfs_df where Position is between Start_Position and End_Position
+        matching_row = filter(row -> row.Start_Position <= position_value <= row.End_Position, orfs_df)
+
+        # If a match is found, add a row to variant_locations_df
+        if !isempty(matching_row)
+            push!(variant_locations_df, (
+                matching_row[1, :ORF_name],
+                matching_row[1, :Start_Position],
+                matching_row[1, :End_Position],
+                matching_row[1, :Matched_Sequence],
+                (variants_df[i, :Position] + 2),
+                variants_df[i, :Original_Base],
+                variants_df[i, :Variant_Base]
+            ))
+        else
+            # If no match is found, increment no_match_count
+            no_match_count += 1
+        end
+    end
+
+    # Print the count of rows with no matches
+    println("Number of variants with no matches: $no_match_count")
+
+    return variant_locations_df
+end
+
+# find codon containing variant
+function find_codons(df::DataFrame)
+    # Create new columns 'Original_Codon' and 'Variant_Codon'
+    df.Original_Codon .= ""
+    df.Variant_Codon .= ""
+
+    for i in 1:nrow(df)
+        # Check if 'Sequence' column is missing
+        if ismissing(df[i, :Sequence])
+            continue
+        end
+
+        # Extract the sequence, variant position, start position, and original base
+        sequence = string(df[i, :Sequence])
+        variant_position = df[i, :Variant_Position]
+        start_position = df[i, :Start_Position]
+        original_base = df[i, :Original_Base]
+        variant_base = df[i, :Variant_Base]
+
+        # Calculate the adjusted variant position
+        adjusted_variant_position = variant_position - start_position
+
+        # Calculate the start position of the selected codon
+        codon_start_position = 3 * div(adjusted_variant_position, 3, RoundDown)
+
+        # Extract the codon containing the nth base
+        original_codon = sequence[codon_start_position + 1:codon_start_position + 3]
+
+        # Update the 'Original_Codon' column
+        df[i, :Original_Codon] = original_codon
+
+        # Check if Original_Base is contained within Original_Codon
+        if occursin(original_base, original_codon)
+            # Replace the base at adjusted_variant_position with Variant_Base
+            variant_codon = replace(original_codon, original_base => variant_base)
+
+            # Update 'Variant_Codon' column
+            df[i, :Variant_Codon] = variant_codon
+        else
+            println("Warning: Original_Base is not contained within Original_Codon at row $i.")
+        end
+    end
+
+    return df
+end
+
+# translate codons 
+
+using DataFrames
+
+function translate_codons(df::DataFrame)
+    # Define a dictionary for codon to amino acid translation
+    codon_to_aa = Dict(
+        "AAA" => "K", "AAC" => "N", "AAG" => "K", "AAT" => "N",
+        "ACA" => "T", "ACC" => "T", "ACG" => "T", "ACT" => "T",
+        "AGA" => "R", "AGC" => "S", "AGG" => "R", "AGT" => "S",
+        "ATA" => "I", "ATC" => "I", "ATG" => "M", "ATT" => "I",
+        "CAA" => "Q", "CAC" => "H", "CAG" => "Q", "CAT" => "H",
+        "CCA" => "P", "CCC" => "P", "CCG" => "P", "CCT" => "P",
+        "CGA" => "R", "CGC" => "R", "CGG" => "R", "CGT" => "R",
+        "CTA" => "L", "CTC" => "L", "CTG" => "L", "CTT" => "L",
+        "GAA" => "E", "GAC" => "D", "GAG" => "E", "GAT" => "D",
+        "GCA" => "A", "GCC" => "A", "GCG" => "A", "GCT" => "A",
+        "GGA" => "G", "GGC" => "G", "GGG" => "G", "GGT" => "G",
+        "GTA" => "V", "GTC" => "V", "GTG" => "V", "GTT" => "V",
+        "TAA" => "*", "TAC" => "Y", "TAG" => "*", "TAT" => "Y",
+        "TCA" => "S", "TCC" => "S", "TCG" => "S", "TCT" => "S",
+        "TGA" => "*", "TGC" => "C", "TGG" => "W", "TGT" => "C",
+        "TTA" => "L", "TTC" => "F", "TTG" => "L", "TTT" => "F",
+    )
+
+    # Translate Original_Codon to Original_AA
+    df[!, :Original_AA] = [get(codon_to_aa, codon, "") for codon in df[:, :Original_Codon]]
+
+    # Translate Variant_Codon to Variant_AA
+    df[!, :Variant_AA] = [get(codon_to_aa, codon, "") for codon in df[:, :Variant_Codon]]
+
+    # Check if Original_AA and Variant_AA are synonymous
+    df[!, :Is_Synonymous] = ifelse.(df[:, :Original_AA] .== df[:, :Variant_AA], "Yes", "No")
+
+    return df
+end
+
+
+# create variant_sequence
+function substitute_variants(dataframe::DataFrame)
+    # Create a new column for Base_Position
+    dataframe.Adj_Variant_Position = dataframe.Variant_Position .- dataframe.Start_Position
+
+    # Create a new column for Variant_Sequence
+    dataframe.Variant_Sequence = Vector{String}(undef, nrow(dataframe))
+
+    # Iterate over each row in the DataFrame
+    for i in 1:nrow(dataframe)
+        # Extract the original sequence
+        sequence = string(dataframe[i, :Sequence])
+
+        # Extract the variant position
+        adjusted_variant_position = dataframe[i, :Adj_Variant_Position]
+
+        # Check if the variant position is within the sequence length
+        if 1 <= adjusted_variant_position <= length(sequence)
+            # Extract the variant base
+            variant_base = string(dataframe[i, :Variant_Base])
+
+            # Check if the character at Base_Position is equal to Original_Base
+            original_base = string(sequence[adjusted_variant_position])
+            if original_base != dataframe[i, :Original_Base]
+                println("Warning: Original_Base in row $i does not match base at position $adjusted_variant_position in the Sequence.")
+            end
+
+            # Create the new sequence with the substitution
+            new_sequence = string(sequence[1:adjusted_variant_position-1], variant_base, sequence[adjusted_variant_position+1:end])
+
+            # Update the Variant_Sequence column
+            dataframe[i, :Variant_Sequence] = new_sequence
+        end
+    end
+
+    return dataframe
+end
+
+
+
+kemp_located = locate_variants("data/Kemp")
+kemp_subs = substitute_variants(kemp_located)
