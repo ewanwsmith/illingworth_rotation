@@ -40,7 +40,7 @@ function locate_variants(folder_path::String)
                 matching_row[1, :Start_Position],
                 matching_row[1, :End_Position],
                 matching_row[1, :Matched_Sequence],
-                variants_df[i, :Position],
+                (variants_df[i, :Position] + 2),
                 variants_df[i, :Original_Base],
                 variants_df[i, :Variant_Base]
             ))
@@ -140,6 +140,45 @@ function translate_codons(df::DataFrame)
 end
 
 
+# create variant_sequence
+function substitute_variants(dataframe::DataFrame)
+    # Create a new column for Base_Position
+    dataframe.Adj_Variant_Position = dataframe.Variant_Position .- dataframe.Start_Position
+
+    # Create a new column for Variant_Sequence
+    dataframe.Variant_Sequence = Vector{String}(undef, nrow(dataframe))
+
+    # Iterate over each row in the DataFrame
+    for i in 1:nrow(dataframe)
+        # Extract the original sequence
+        sequence = string(dataframe[i, :Sequence])
+
+        # Extract the variant position
+        adjusted_variant_position = dataframe[i, :Adj_Variant_Position]
+
+        # Check if the variant position is within the sequence length
+        if 1 <= adjusted_variant_position <= length(sequence)
+            # Extract the variant base
+            variant_base = string(dataframe[i, :Variant_Base])
+
+            # Check if the character at Base_Position is equal to Original_Base
+            original_base = string(sequence[adjusted_variant_position])
+            if original_base != dataframe[i, :Original_Base]
+                println("Warning: Original_Base in row $i does not match base at position $adjusted_variant_position in the Sequence.")
+            end
+
+            # Create the new sequence with the substitution
+            new_sequence = string(sequence[1:adjusted_variant_position-1], variant_base, sequence[adjusted_variant_position+1:end])
+
+            # Update the Variant_Sequence column
+            dataframe[i, :Variant_Sequence] = new_sequence
+        end
+    end
+
+    return dataframe
+end
+
+
+
 kemp_located = locate_variants("data/Kemp")
-kemp_codons = find_codons(kemp_located)
-kemp_translated = translate_codons(kemp_codons)
+kemp_subs = substitute_variants(kemp_located)
