@@ -202,7 +202,7 @@ function locate_variants(folder_path::String)
                 matching_row[1, :Start_Position],
                 matching_row[1, :End_Position],
                 matching_row[1, :Matched_Sequence],
-                variants_df[i, :Position],
+                (variants_df[i, :Position] + 2),
                 variants_df[i, :Original_Base],
                 variant_base
             ))
@@ -253,3 +253,95 @@ function substitute_variants(dataframe::DataFrame)
 
     return dataframe
 end
+
+# find original codons
+function find_original_codons(df::DataFrame)
+    # Function to split a DNA sequence into codons
+    function split_into_codons(sequence)
+        return [sequence[i:i+2] for i in 1:3:length(sequence)-2]
+    end
+    
+    # Process each row in the DataFrame
+    codons = []
+    for row in 1:size(df, 1)
+        sequence = string(df[row, :Sequence])
+        base_position = df[row, :Adj_Variant_Position]
+        
+        # Check if base_position is valid
+        if base_position < 1 || base_position > length(sequence)
+            throw(ArgumentError("Invalid Base_Position for row $row"))
+        end
+        
+        # Extract the codon based on the Adj_Variant_Position
+        codon_index = (base_position - 1) ÷ 3 + 1
+        push!(codons, split_into_codons(sequence)[codon_index])
+    end
+    
+    # Add the codons as a new column in the DataFrame
+    df[!, :Original_Codon] = codons
+    
+    return df
+end
+
+# find variant codons
+function find_variant_codons(df::DataFrame)
+    # Function to split a DNA sequence into codons
+    function split_into_codons(sequence)
+        return [sequence[i:i+2] for i in 1:3:length(sequence)-2]
+    end
+    
+    # Process each row in the DataFrame
+    codons = []
+    for row in 1:size(df, 1)
+        sequence = string(df[row, :Variant_Sequence])
+        base_position = df[row, :Adj_Variant_Position]
+        
+        # Check if base_position is valid
+        if base_position < 1 || base_position > length(sequence)
+            throw(ArgumentError("Invalid Base_Position for row $row"))
+        end
+        
+        # Extract the codon based on the Adj_Variant_Position
+        codon_index = (base_position - 1) ÷ 3 + 1
+        push!(codons, split_into_codons(sequence)[codon_index])
+    end
+    
+    # Add the codons as a new column in the DataFrame
+    df[!, :Variant_Codon] = codons
+    
+    return df
+end
+
+function translate_codons(df)
+    # Function to map codons to amino acids
+    function codon_to_aa(codon)
+        codon_dict = Dict("TTT" => "F", "TTC" => "F", "TTA" => "L", "TTG" => "L",
+                          "CTT" => "L", "CTC" => "L", "CTA" => "L", "CTG" => "L",
+                          "ATT" => "I", "ATC" => "I", "ATA" => "I", "ATG" => "M",
+                          "GTT" => "V", "GTC" => "V", "GTA" => "V", "GTG" => "V",
+                          "TCT" => "S", "TCC" => "S", "TCA" => "S", "TCG" => "S",
+                          "CCT" => "P", "CCC" => "P", "CCA" => "P", "CCG" => "P",
+                          "ACT" => "T", "ACC" => "T", "ACA" => "T", "ACG" => "T",
+                          "GCT" => "A", "GCC" => "A", "GCA" => "A", "GCG" => "A",
+                          "TAT" => "Y", "TAC" => "Y", "TAA" => "*", "TAG" => "*",
+                          "CAT" => "H", "CAC" => "H", "CAA" => "Q", "CAG" => "Q",
+                          "AAT" => "N", "AAC" => "N", "AAA" => "K", "AAG" => "K",
+                          "GAT" => "D", "GAC" => "D", "GAA" => "E", "GAG" => "E",
+                          "TGT" => "C", "TGC" => "C", "TGA" => "*", "TGG" => "W",
+                          "CGT" => "R", "CGC" => "R", "CGA" => "R", "CGG" => "R",
+                          "AGT" => "S", "AGC" => "S", "AGA" => "R", "AGG" => "R",
+                          "GGT" => "G", "GGC" => "G", "GGA" => "G", "GGG" => "G")
+        
+        return get(codon_dict, codon, "Unknown")
+    end
+
+    # Translate Original_Codon and Variant_Codon to amino acids
+    df.Original_AA = map(codon_to_aa, df.Original_Codon)
+    df.Variant_AA = map(codon_to_aa, df.Variant_Codon)
+
+    # Determine if the amino acids are synonymous
+    df.Is_Synonymous = ifelse.(df.Original_AA .== df.Variant_AA, "Yes", "No")
+
+    return df
+end
+
