@@ -162,15 +162,11 @@ function find_match_consensus_orfs(folder::String)
     return match_orfs_result
 end
 
-#for folder in folder_list
-#    find_match_consensus_orfs(folder)
-#end
-
 # read variants, find the ORFs they sit in
 function locate_variants(folder_path::String)
-    # Read Variant_list.csv into variants_df
+    # Read Variant_list.csv into variants_df with explicit type for Variant_Base
     variants_path = joinpath(folder_path, "Variant_list.csv")
-    variants_df = CSV.read(variants_path, DataFrame)
+    variants_df = CSV.read(variants_path, DataFrame, types=Dict(:Variant_Base => String))
 
     # Read Consensus_ORFs.csv into orfs_df
     orfs_path = joinpath(folder_path, "Consensus_ORFs.csv")
@@ -199,6 +195,8 @@ function locate_variants(folder_path::String)
 
         # If a match is found, add a row to variant_locations_df
         if !isempty(matching_row)
+            variant_base = string(variants_df[i, :Variant_Base])
+
             push!(variant_locations_df, (
                 matching_row[1, :ORF_name],
                 matching_row[1, :Start_Position],
@@ -206,59 +204,52 @@ function locate_variants(folder_path::String)
                 matching_row[1, :Matched_Sequence],
                 variants_df[i, :Position],
                 variants_df[i, :Original_Base],
-                variants_df[i, :Variant_Base]
+                variant_base
             ))
         else
-            # If no match is found, increment no_match_count
             no_match_count += 1
         end
     end
 
-    # Print the count of rows with no matches
     println("Number of variants with no matches: $no_match_count")
 
     return variant_locations_df
 end
 
-# pull out codon containing Variant_Base position
-function find_codons(df::DataFrame)
-    # Create a new column 'Original_Codon'
-    df.Original_Codon .= ""
+# create variant_sequence
+function substitute_variants(dataframe::DataFrame)
+    # Create a new column for Base_Position
+    dataframe.Adj_Variant_Position = dataframe.Variant_Position .- dataframe.Start_Position
 
-    for i in 1:nrow(df)
-        # Check if 'Sequence' column is missing
-        if ismissing(df[i, :Sequence])
-            continue
-        end
+    # Create a new column for Variant_Sequence
+    dataframe.Variant_Sequence = Vector{String}(undef, nrow(dataframe))
 
-        # Extract the sequence, variant position, start position, and original base
-        sequence = string(df[i, :Sequence])
-        variant_position = df[i, :Variant_Position]
-        start_position = df[i, :Start_Position]
-        original_base = df[i, :Original_Base]
+    # Iterate over each row in the DataFrame
+    for i in 1:nrow(dataframe)
+        # Extract the original sequence
+        sequence = string(dataframe[i, :Sequence])
 
-        # Calculate the adjusted variant position
-        adjusted_variant_position = variant_position - start_position
+        # Extract the variant position
+        adjusted_variant_position = dataframe[i, :Adj_Variant_Position]
 
-        # Calculate the start position of the selected codon
-        codon_start_position = 3 * div(adjusted_variant_position, 3)
+        # Check if the variant position is within the sequence length
+        if 1 <= adjusted_variant_position <= length(sequence)
+            # Extract the variant base
+            variant_base = string(dataframe[i, :Variant_Base])
 
-        # Extract the codon containing the nth base
-        original_codon = sequence[codon_start_position + 1:codon_start_position + 3]
+            # Check if the character at Base_Position is equal to Original_Base
+            original_base = string(sequence[adjusted_variant_position])
+            if original_base != dataframe[i, :Original_Base]
+                println("Warning: Original_Base in row $i does not match base at position $adjusted_variant_position in the Sequence.")
+            end
 
-        # Update the 'Original_Codon' column
-        df[i, :Original_Codon] = original_codon
+            # Create the new sequence with the substitution
+            new_sequence = string(sequence[1:adjusted_variant_position-1], variant_base, sequence[adjusted_variant_position+1:end])
 
-        # Check if Original_Base is contained within Original_Codon
-        if occursin(original_base, original_codon)
-            # Do something if it's contained
-        else
-            println("Warning: Original_Base is not contained within Original_Codon at row $i.")
+            # Update the Variant_Sequence column
+            dataframe[i, :Variant_Sequence] = new_sequence
         end
     end
 
-    return df
+    return dataframe
 end
-
-kemp_located = locate_variants("data/Kemp")
-kemp_codons = find_codons(kemp_located)
