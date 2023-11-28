@@ -16,11 +16,11 @@ include("/Users/ewansmith/Documents/PhD/Rotation 1 - Illingworth/illingworth_rot
 ref_orfs = ref_readin(reference_path)
 
 # find ORFs within consensus sequences
-for folder in folder_path
+for folder in folder_list
     find_match_consensus_orfs(folder)
 end
 
 # locate variants within ORFs, pull out affected codons & deterine synonymity
-for folder in folder_path
+for folder in folder_list
     pull_translate_codons(folder)
 end
