@@ -344,4 +344,3 @@ function translate_codons(df)
 
     return df
 end
-
