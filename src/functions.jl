@@ -144,7 +144,6 @@ function match_consensus_orfs(result_df::DataFrame)
 end
 
 # run above functions
-ref_orfs = ref_readin(reference_path)
 
 function find_match_consensus_orfs(folder::String)
     println("Running readin_consensus() function on folder: $folder")
@@ -341,6 +340,28 @@ function translate_codons(df)
 
     # Determine if the amino acids are synonymous
     df.Is_Synonymous = ifelse.(df.Original_AA .== df.Variant_AA, "Yes", "No")
+
+    return df
+end
+
+# run above functions
+
+function pull_translate_codons(folder::String)
+    println("Running locate_variants() function on folder: $folder")
+    df = locate_variants(folder) #find variants in ORFs
+
+    println("Running substitute_variants() function on folder: $folder")
+    df = substitute_variants(df) #create variant_sequence
+    println("Running find_original_codons() function on folder: $folder")
+    df = find_original_codons(df) #pull original codon
+    println("Running find_variant_codons() function on folder: $folder")
+    df = find_variant_codons(df) #pull variant codon
+    println("Running translate_codons() function on folder $folder")
+    df = translate_codons(df)
+
+    csv_path = joinpath(folder, "codons.csv") 
+    println("codons.csv to folder: $folder")
+    CSV.write(csv_path, df) #write results to a CSV in sample folder
 
     return df
 end
