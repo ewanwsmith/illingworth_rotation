@@ -6,14 +6,15 @@ folder_list = ["data/CAMP000427", "data/CAMP001339", "data/CAMP001490",
                 "data/CAMP004884", "data/CAMP007136", "data/Kemp"]
 
 
-#input path to reference ORFs
-reference_path = "data/reference/coding_sequences.fasta" 
+#input path to reference files
+reference_orf_path = "data/reference/coding_sequences.fasta" 
+reference_protein_path = "data/reference/protein_sequences.fasta"
 
 #load functions
 include("/Users/ewansmith/Documents/PhD/Rotation 1 - Illingworth/illingworth_rotation/src/functions.jl")
 
 # readin reference ORFs
-ref_orfs = ref_readin(reference_path)
+ref_orfs = ref_readin(reference_orf_path)
 
 # find ORFs within consensus sequences
 for folder in folder_list

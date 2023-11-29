@@ -1,14 +1,4 @@
-# take SARS-CoV_2 .fasta files, extract all possible open reading frames, and match these to NCBI reference ORFs
-
-#input paths to folders with .fasta files
-folder_list = ["data/CAMP000427", "data/CAMP001339", "data/CAMP001490",
-                "data/CAMP001523", "data/CAMP002274", "data/CAMP003468",
-                "data/CAMP004884", "data/CAMP007136", "data/Kemp"]
-
-
-#input path to reference ORFs
-reference_path = "data/reference/coding_sequences.fasta" 
-
+# functions
 
 #load dependencies
 using DataFrames
