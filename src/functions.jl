@@ -301,29 +301,30 @@ function find_variant_codons(df::DataFrame)
     return df
 end
 
-function translate_codons(df)
-    # Function to map codons to amino acids
-    function codon_to_aa(codon)
-        codon_dict = Dict("TTT" => "F", "TTC" => "F", "TTA" => "L", "TTG" => "L",
-                          "CTT" => "L", "CTC" => "L", "CTA" => "L", "CTG" => "L",
-                          "ATT" => "I", "ATC" => "I", "ATA" => "I", "ATG" => "M",
-                          "GTT" => "V", "GTC" => "V", "GTA" => "V", "GTG" => "V",
-                          "TCT" => "S", "TCC" => "S", "TCA" => "S", "TCG" => "S",
-                          "CCT" => "P", "CCC" => "P", "CCA" => "P", "CCG" => "P",
-                          "ACT" => "T", "ACC" => "T", "ACA" => "T", "ACG" => "T",
-                          "GCT" => "A", "GCC" => "A", "GCA" => "A", "GCG" => "A",
-                          "TAT" => "Y", "TAC" => "Y", "TAA" => "*", "TAG" => "*",
-                          "CAT" => "H", "CAC" => "H", "CAA" => "Q", "CAG" => "Q",
-                          "AAT" => "N", "AAC" => "N", "AAA" => "K", "AAG" => "K",
-                          "GAT" => "D", "GAC" => "D", "GAA" => "E", "GAG" => "E",
-                          "TGT" => "C", "TGC" => "C", "TGA" => "*", "TGG" => "W",
-                          "CGT" => "R", "CGC" => "R", "CGA" => "R", "CGG" => "R",
-                          "AGT" => "S", "AGC" => "S", "AGA" => "R", "AGG" => "R",
-                          "GGT" => "G", "GGC" => "G", "GGA" => "G", "GGG" => "G")
-        
-        return get(codon_dict, codon, "Unknown")
-    end
+# Function to map codons to amino acids
+function codon_to_aa(codon)
+    codon_dict = Dict("TTT" => "F", "TTC" => "F", "TTA" => "L", "TTG" => "L",
+                        "CTT" => "L", "CTC" => "L", "CTA" => "L", "CTG" => "L",
+                        "ATT" => "I", "ATC" => "I", "ATA" => "I", "ATG" => "M",
+                        "GTT" => "V", "GTC" => "V", "GTA" => "V", "GTG" => "V",
+                        "TCT" => "S", "TCC" => "S", "TCA" => "S", "TCG" => "S",
+                        "CCT" => "P", "CCC" => "P", "CCA" => "P", "CCG" => "P",
+                        "ACT" => "T", "ACC" => "T", "ACA" => "T", "ACG" => "T",
+                        "GCT" => "A", "GCC" => "A", "GCA" => "A", "GCG" => "A",
+                        "TAT" => "Y", "TAC" => "Y", "TAA" => "*", "TAG" => "*",
+                        "CAT" => "H", "CAC" => "H", "CAA" => "Q", "CAG" => "Q",
+                        "AAT" => "N", "AAC" => "N", "AAA" => "K", "AAG" => "K",
+                        "GAT" => "D", "GAC" => "D", "GAA" => "E", "GAG" => "E",
+                        "TGT" => "C", "TGC" => "C", "TGA" => "*", "TGG" => "W",
+                        "CGT" => "R", "CGC" => "R", "CGA" => "R", "CGG" => "R",
+                        "AGT" => "S", "AGC" => "S", "AGA" => "R", "AGG" => "R",
+                        "GGT" => "G", "GGC" => "G", "GGA" => "G", "GGG" => "G")
+    
+    return get(codon_dict, codon, "Unknown")
+end
 
+#translate original & variant codons & determine synonymity
+function translate_codons(df)
     # Translate Original_Codon and Variant_Codon to amino acids
     df.Original_AA = map(codon_to_aa, df.Original_Codon)
     df.Variant_AA = map(codon_to_aa, df.Variant_Codon)
