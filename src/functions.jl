@@ -34,20 +34,23 @@ function ref_readin(file_path::AbstractString)
     end
 
     df = DataFrame(
-        Reference_orf_name = orf_names,
-        Sequence = sequences
+        Reference_orf_name=orf_names,
+        Sequence=sequences
     )
     df = hcat(df,
-    DataFrame(reduce(vcat, permutedims.(split.(df.Reference_orf_name, '|'))),
-    [:Gene_accession_and_position, :ORF_name]))
-    select!(df, Not(:Reference_orf_name))
+        DataFrame(reduce(vcat, permutedims.(split.(df.Reference_orf_name, '|'))),
+            [:Gene_accession_and_position, :ORF_name_species]))
     df = hcat(df,
-    DataFrame(reduce(vcat, permutedims.(split.(df.Gene_accession_and_position, ':'))),
-    [:Accession, :Position]))
+        DataFrame(reduce(vcat, permutedims.(split.(df.ORF_name_species, '['))),
+            [:ORF_name, :Species_name]))
+    select!(df, Not(:Species_name))
+    df = hcat(df,
+        DataFrame(reduce(vcat, permutedims.(split.(df.Gene_accession_and_position, ':'))),
+            [:Accession, :Position]))
     select!(df, Not(:Gene_accession_and_position))
     df = hcat(df,
-    DataFrame(reduce(vcat, permutedims.(split.(df.Position, ".."))),
-    [:Start_Position, :End_Position]))
+        DataFrame(reduce(vcat, permutedims.(split.(df.Position, ".."))),
+            [:Start_Position, :End_Position]))
     select!(df, Not(:Position))
     select!(df, [:ORF_name, :Start_Position, :End_Position, :Sequence])
     df.Start_Position = parse.(Int64, df.Start_Position)
