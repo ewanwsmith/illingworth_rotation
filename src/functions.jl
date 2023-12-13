@@ -85,73 +85,107 @@ function readin_consensus(folder::AbstractString)
     end
 end
 
+# pull protein sequences from positions
+function pull_proteins(record::FASTX.FASTA.Record, positions_df::DataFrame)
+    # Get sequence from the FASTA record
+    sequence = FASTX.sequence(record)
+    
+    # Initialize an empty DataFrame to store the results
+    result_df = DataFrame(
+        Protein = String[],
+        Start = Int[],
+        End = Int[],
+        Sequence = String[]
+    )
+    
+    # Iterate through each row in the positions DataFrame
+    for row in eachrow(positions_df)
+        protein_name = row.Protein
+        position_str = row.Position
+        
+        # Extract start and end positions from the position string
+        start_end_pairs = split(position_str, ',')
+        
+        for pair in start_end_pairs
+            # Convert the substring to a string explicitly
+            pair_string = String(pair)
 
-#find ORFs within consensus sequence
-function find_consensus_orfs(consensus_record::FASTX.FASTA.Record, orf_df::DataFrame)
-    consensus_sequence = FASTX.sequence(consensus_record)
-    
-    best_matches = DataFrame(ORF_name=String[], Start_Position=Int[], End_Position=Int[], Matched_Sequence=String[], Match_Length=Int[], Reference_Sequence=String[], Reference_Length=Int[])
-    
-    for i in 1:nrow(orf_df)
-        orf_name = orf_df[i, :ORF_name]
-        orf_sequence = orf_df[i, :Sequence]
-        
-        start_codon = "ATG"
-        stop_codons = ["TAA", "TAG", "TGA"]
-        
-        # Iterate through the consensus sequence to find potential ORFs
-        for start in 1:length(consensus_sequence) - length(orf_sequence) + 1
-            match_end = start + length(orf_sequence) - 1
-            match_sequence = consensus_sequence[start:match_end]
-            
-            # Check if the potential ORF starts with a start codon
-            if startswith(uppercase(match_sequence), start_codon)
-                # Check if it ends with a stop codon
-                if any(endswith(uppercase(match_sequence), stop_codon) for stop_codon in stop_codons)
-                    push!(best_matches, (orf_name, start, match_end, match_sequence, length(match_sequence), orf_sequence, length(orf_sequence)))
-                end
-            end
+            match_positions = match(r"(\d+)..(\d+)", pair_string)
+            start_position = parse(Int, match_positions.captures[1])
+            end_position = parse(Int, match_positions.captures[2])
+
+            # Extract the subsequence from start_position to end_position
+            subsequence = sequence[start_position:end_position]
+
+            # Append the result to the DataFrame
+            push!(result_df, (protein_name, start_position, end_position, subsequence))
         end
     end
     
-    return best_matches
+    return result_df
 end
 
+# join together frames of genes with frameshifts
+function join_frames(df)
+    # Assuming your data is stored in a DataFrame called df
 
-# match found ORFs to reference ORFs by length and fewest mismatches
-function count_mismatches(seq1::AbstractString, seq2::AbstractString) #small function to count mismatches
-    return sum(seq1[i] != seq2[i] for i in eachindex(seq1))
-end
+    # Sort the DataFrame by Protein, Start, and End
+    sort!(df, [:Protein, :Start, :End])
 
-function match_consensus_orfs(result_df::DataFrame)
-    # Calculate n_mismatches for each row
-    result_df.n_mismatches = [count_mismatches(row.Matched_Sequence, row.Reference_Sequence) for row in eachrow(result_df)]
+    # Initialize variables to store the joined rows
+    joined_proteins = String[]
+    joined_start = nothing
+    joined_end = nothing
+    joined_sequence = ""
 
-    # Group by ORF_name, sort each group by n_mismatches, and take the first row of each group
-    best_matches = combine(groupby(result_df, :ORF_name)) do group
-        sort!(group, :n_mismatches)
-        first(group, 1)
+    # Iterate through the DataFrame to join rows with the same Protein
+    for row in eachrow(df)
+        if !isempty(joined_proteins) && row.Protein == joined_proteins[end]
+            # If the current row has the same Protein as the previous one, update End and concatenate Sequence
+            joined_end = max(joined_end, row.End)
+            joined_sequence *= row.Sequence
+        else
+            # If the current row has a different Protein, store the joined row and reset variables
+            if !isempty(joined_proteins)
+                df[df.Protein .== joined_proteins[end], :Start] .= joined_start
+                df[df.Protein .== joined_proteins[end], :End] .= joined_end
+                df[df.Protein .== joined_proteins[end], :Sequence] .= joined_sequence
+            end
+
+            push!(joined_proteins, row.Protein)
+            joined_start = row.Start
+            joined_end = row.End
+            joined_sequence = row.Sequence
+        end
     end
 
-    return best_matches
+    # Update the last joined row after the loop
+    if !isempty(joined_proteins)
+        df[df.Protein .== joined_proteins[end], :Start] .= joined_start
+        df[df.Protein .== joined_proteins[end], :End] .= joined_end
+        df[df.Protein .== joined_proteins[end], :Sequence] .= joined_sequence
+    end
+
+    # Drop duplicate rows (keeping the first occurrence)
+    df = unique(df, [:Protein])
 end
 
 # run above functions
 
-function find_match_consensus_orfs(folder::String)
+function find_genes(folder::String)
     println("Running readin_consensus() function on folder: $folder")
     df = readin_consensus(folder) #readin fasta file
 
-    println("Running find_consensus_orfs() function on folder: $folder")
-    orfs_result = find_consensus_orfs(df, ref_orfs) #find possible ORFs in consensus fasta file
-    println("Running match_consensus_orfs() function on folder: $folder")
-    match_orfs_result = match_consensus_orfs(orfs_result) #find best matches to reference ORFs by length
+    println("Running pull_proteins() function on folder: $folder")
+    df = pull_proteins(df, positions_df) #pull genes out from consensus sequences
+    println("Running join_frames() function on folder: $folder")
+    df = join_frames(df) #join frames across frameshifts
 
-    csv_path = joinpath(folder, "consensus_ORFs.csv") 
-    println("Writing matched_ORFs.csv to folder: $folder")
-    CSV.write(csv_path, match_orfs_result) #write results to a CSV in sample folder
+    csv_path = joinpath(folder, "pulled_genes.csv") 
+    println("Writing pulled_genes.csv to folder: $folder")
+    CSV.write(csv_path, df) #write results to a CSV in sample folder
 
-    return match_orfs_result
+    return df
 end
 
 # read variants, find the ORFs they sit in
