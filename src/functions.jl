@@ -194,13 +194,13 @@ function locate_variants(folder_path::String)
     variants_path = joinpath(folder_path, "Variant_list.csv")
     variants_df = CSV.read(variants_path, DataFrame, types=Dict(:Variant_Base => String))
 
-    # Read Consensus_ORFs.csv into orfs_df
-    orfs_path = joinpath(folder_path, "Consensus_ORFs.csv")
+    # Read pulled_genes.csv into orfs_df
+    orfs_path = joinpath(folder_path, "pulled_genes.csv")
     orfs_df = CSV.read(orfs_path, DataFrame)
 
     # Initialize variant_locations_df
     variant_locations_df = DataFrame(
-        ORF_name = String[],
+        Protein = String[],
         Start_Position = Int[],
         End_Position = Int[],
         Sequence = String[],
@@ -216,18 +216,18 @@ function locate_variants(folder_path::String)
     for i in 1:size(variants_df, 1)
         position_value = variants_df[i, :Position]
 
-        # Find the row in orfs_df where Position is between Start_Position and End_Position
-        matching_row = filter(row -> row.Start_Position <= position_value <= row.End_Position, orfs_df)
+        # Find the row in orfs_df where Position is between Start and End
+        matching_row = filter(row -> row.Start <= position_value <= row.End, orfs_df)
 
         # If a match is found, add a row to variant_locations_df
         if !isempty(matching_row)
             variant_base = string(variants_df[i, :Variant_Base])
 
             push!(variant_locations_df, (
-                matching_row[1, :ORF_name],
-                matching_row[1, :Start_Position],
-                matching_row[1, :End_Position],
-                matching_row[1, :Matched_Sequence],
+                matching_row[1, :Protein],
+                matching_row[1, :Start],
+                matching_row[1, :End],
+                matching_row[1, :Sequence],
                 (variants_df[i, :Position] + 2),
                 variants_df[i, :Original_Base],
                 variant_base
