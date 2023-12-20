@@ -388,7 +388,7 @@ function pull_translate_codons(folder::String)
     df = translate_codons(df)
 
     csv_path = joinpath(folder, "codons.csv") 
-    println("codons.csv to folder: $folder")
+    println("writing codons.csv to folder: $folder")
     CSV.write(csv_path, df) #write results to a CSV in sample folder
 
     return df
