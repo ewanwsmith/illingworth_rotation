@@ -171,7 +171,6 @@ function join_frames(df)
 end
 
 # run above functions
-
 function find_genes(folder::String)
     println("Running readin_consensus() function on folder: $folder")
     df = readin_consensus(folder) #readin fasta file
@@ -189,15 +188,7 @@ function find_genes(folder::String)
 end
 
 # read variants, find the ORFs they sit in
-function locate_variants(folder_path::String)
-    # Read Variant_list.csv into variants_df with explicit type for Variant_Base
-    variants_path = joinpath(folder_path, "Variant_list.csv")
-    variants_df = CSV.read(variants_path, DataFrame, types=Dict(:Variant_Base => String))
-
-    # Read pulled_genes.csv into orfs_df
-    orfs_path = joinpath(folder_path, "pulled_genes.csv")
-    orfs_df = CSV.read(orfs_path, DataFrame)
-
+function locate_variants(variants_df::DataFrame, frames_df::DataFrame)
     # Initialize variant_locations_df
     variant_locations_df = DataFrame(
         Protein = String[],
@@ -212,22 +203,30 @@ function locate_variants(folder_path::String)
     # Count of no matches
     no_match_count = 0
 
+    # Sort frames_df by Start column
+    sorted_frames_df = sort(frames_df, [:Protein, :Start])
+
     # Iterate through each row in variants_df
     for i in 1:size(variants_df, 1)
         position_value = variants_df[i, :Position]
 
-        # Find the row in orfs_df where Position is between Start and End
-        matching_row = filter(row -> row.Start <= position_value <= row.End, orfs_df)
+        # Find the rows in sorted_frames_df where Position is between Start and End
+        matching_rows = filter(row -> row.Start <= position_value <= row.End, sorted_frames_df)
 
-        # If a match is found, add a row to variant_locations_df
-        if !isempty(matching_row)
+        # If matches are found, join them
+        if !isempty(matching_rows)
+            protein_value = matching_rows[1, :Protein]
+            start_value = matching_rows[1, :Start]
+            end_value = matching_rows[end, :End]  # Take the last numerical End value
+            sequence_value = join(matching_rows[!, :Sequence], "")  # Join Sequence values
+
             variant_base = string(variants_df[i, :Variant_Base])
 
             push!(variant_locations_df, (
-                matching_row[1, :Protein],
-                matching_row[1, :Start],
-                matching_row[1, :End],
-                matching_row[1, :Sequence],
+                protein_value,
+                start_value,
+                end_value,
+                sequence_value,
                 (variants_df[i, :Position] + 2),
                 variants_df[i, :Original_Base],
                 variant_base
