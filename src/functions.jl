@@ -389,8 +389,14 @@ end
 # run above functions
 
 function pull_translate_codons(folder::String)
+    println("Running readin_consensus() function on folder: $folder")
+    df = readin_consensus(folder) #readin fasta file
+    println("Running readin_variants() function on folder: $folder")
+    var = readin_variants(folder) #readin variants file
+    println("Running pull_proteins() function on folder: $folder")
+    df = pull_proteins(df, positions_df) #pull genes out from consensus sequences
     println("Running locate_variants() function on folder: $folder")
-    df = locate_variants(folder) #find variants in ORFs
+    df = locate_variants(var, df) #find variants in ORFs
 
     println("Running substitute_variants() function on folder: $folder")
     df = substitute_variants(df) #create variant_sequence
