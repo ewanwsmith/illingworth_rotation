@@ -407,7 +407,6 @@ function true_to_T(df::DataFrame)
 end
 
 # run above functions
-
 function pull_translate_codons(folder::String)
     println("Running readin_consensus() function on folder: $folder")
     df = readin_consensus(folder) #readin fasta file
@@ -446,6 +445,10 @@ function find_rates(folder_path::AbstractString)
         # Read the tab-delimited text files into DataFrames
         rates_df = CSV.File(rates_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
         probs_df = CSV.File(probs_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
+
+        # Apply true_to_T() to the dataframes
+        rates_df = true_to_T(rates_df)
+        probs_df = true_to_T(probs_df)
 
         return rates_df, probs_df
     catch e
