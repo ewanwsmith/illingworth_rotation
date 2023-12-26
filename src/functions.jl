@@ -185,7 +185,6 @@ function find_genes(folder::String)
     return df
 end
 
-# read in variants_list.csv
 function readin_variants(folder_path::AbstractString)
     # Construct the full path to the Variant_list.csv file
     file_path = joinpath(folder_path, "Variant_list.csv")
@@ -193,6 +192,15 @@ function readin_variants(folder_path::AbstractString)
     try
         # Try to read the CSV file into a DataFrame
         variants_df = CSV.File(file_path) |> DataFrame
+        
+        # Convert Variant_Base and Original_Base to String1
+        variants_df[!, :Variant_Base] .= string.(variants_df[!, :Variant_Base])
+        variants_df[!, :Original_Base] .= string.(variants_df[!, :Original_Base])
+        
+        # Replace "true" with "T" in Original_Base and Variant_Base columns
+        variants_df[!, :Original_Base] .= replace.(variants_df[!, :Original_Base], "true" => "T")
+        variants_df[!, :Variant_Base] .= replace.(variants_df[!, :Variant_Base], "true" => "T")
+        
         return variants_df
     catch e
         # Handle the case when the file is not found or there is an error in reading
@@ -201,6 +209,7 @@ function readin_variants(folder_path::AbstractString)
         return DataFrame()  # Return an empty DataFrame in case of an error
     end
 end
+
 
 # read variants, find the ORFs they sit in
 function locate_variants(variants_df::DataFrame, frames_df::DataFrame)
