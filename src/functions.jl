@@ -494,7 +494,7 @@ function add_new_data(folder_path::AbstractString)
         codons_path = joinpath(folder_path, "codons.csv")
 
         # Read the codons.csv file into a DataFrame
-        codons_df = CSV.read(codons_path, DataFrame)
+        codons_df = CSV.File(codons_path) |> DataFrame
 
         # Adjust the Position values in the merged_df
         merged_df.Position .= merged_df.Position .+ 2
