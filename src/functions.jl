@@ -386,6 +386,17 @@ function translate_codons(df)
     return df
 end
 
+#T bases keep being mistaken for "True", so explicitly correct
+function true_to_T(df::DataFrame)
+    # Replace "true" with "T" in Original_Base column
+    df[!, :Original_Base] .= replace.(df[!, :Original_Base], "true" => "T")
+    
+    # Replace "true" with "T" in Variant_Base column
+    df[!, :Variant_Base] .= replace.(df[!, :Variant_Base], "true" => "T")
+    
+    return df
+end
+
 # run above functions
 
 function pull_translate_codons(folder::String)
@@ -397,6 +408,9 @@ function pull_translate_codons(folder::String)
     df = pull_proteins(df, positions_df) #pull genes out from consensus sequences
     println("Running locate_variants() function on folder: $folder")
     df = locate_variants(var, df) #find variants in ORFs
+
+    println("running true_to_T() function on folder: $folder")
+    df = true_to_T(df) # fix true / T issue 
 
     println("Running substitute_variants() function on folder: $folder")
     df = substitute_variants(df) #create variant_sequence
