@@ -413,3 +413,48 @@ function pull_translate_codons(folder::String)
 
     return df
 end
+
+# add evolution rates and Pr(fixation) data from model
+function add_new_data(folder_path::AbstractString)
+    # Call find_rates to get rates_df and probs_df
+    rates_df, probs_df = find_rates(folder_path)
+
+    # Check if find_rates encountered an error
+    if isempty(rates_df) || isempty(probs_df)
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
+
+    try
+        # Join DataFrames based on the "Position" column using inner join
+        merged_df = innerjoin(rates_df, probs_df, on=:Position, makeunique=true)
+
+        # Drop the unwanted columns
+        select!(merged_df, Not(:Original_Base_1, :Variant_Base_1))
+
+        # Construct the full path to the codons.csv file
+        codons_path = joinpath(folder_path, "codons.csv")
+
+        # Read the codons.csv file into a DataFrame
+        codons_df = CSV.read(codons_path, DataFrame)
+
+        # Adjust the Position values in the merged_df
+        merged_df.Position .= merged_df.Position .+ 2
+
+        # Join DataFrames based on the adjusted "Position" and "Variant_Position" columns
+        final_merged_df = innerjoin(merged_df, codons_df, on=:Position => :Variant_Position, makeunique=true)
+
+        # Drop the additional columns
+        select!(final_merged_df, Not(:Original_Base_1, :Variant_Base_1))
+
+        # Display the modified DataFrame
+        display(final_merged_df)
+
+        # Save the final merged DataFrame as codons.csv in the specified folder
+        CSV.write(codons_path, final_merged_df)
+
+        return final_merged_df
+    catch e
+        println("Error reading or joining DataFrames: $e")
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
+end
