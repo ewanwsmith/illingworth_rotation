@@ -127,8 +127,6 @@ end
 
 # join together frames of genes with frameshifts
 function join_frames(df)
-    # Assuming your data is stored in a DataFrame called df
-
     # Sort the DataFrame by Protein, Start, and End
     sort!(df, [:Protein, :Start, :End])
 
@@ -185,6 +183,23 @@ function find_genes(folder::String)
     CSV.write(csv_path, df) #write results to a CSV in sample folder
 
     return df
+end
+
+# read in variants_list.csv
+function readin_variants(folder_path::AbstractString)
+    # Construct the full path to the Variant_list.csv file
+    file_path = joinpath(folder_path, "Variant_list.csv")
+    
+    try
+        # Try to read the CSV file into a DataFrame
+        variants_df = CSV.File(file_path) |> DataFrame
+        return variants_df
+    catch e
+        # Handle the case when the file is not found or there is an error in reading
+        println("Error: ", e)
+        println("Could not read Variant_list.csv. Please check the file path.")
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
 end
 
 # read variants, find the ORFs they sit in
