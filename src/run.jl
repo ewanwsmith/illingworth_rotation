@@ -29,3 +29,8 @@ end
 for folder in folder_list
     pull_translate_codons(folder)
 end
+
+# add model outputs to codons.csv, save as new codons.csv
+for folder in folder_list
+    add_new_data(folder)
+end
