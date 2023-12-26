@@ -31,6 +31,6 @@ for folder in folder_list
 end
 
 # add model outputs to codons.csv, save as new codons.csv
-#for folder in folder_list
-#    add_new_data(folder)
-#end
+for folder in folder_list
+    add_new_data(folder)
+end
