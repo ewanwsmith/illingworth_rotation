@@ -437,6 +437,39 @@ function pull_translate_codons(folder::String)
     return df
 end
 
+function find_rates(folder_path::AbstractString)
+    # Construct the full path to the Mean_rates.dat file
+    rates_path = joinpath(folder_path, "Mean_rates.dat")
+    probs_path = joinpath(folder_path, "Fixation_probabilities.dat") 
+
+    try
+        # Read the tab-delimited text files into DataFrames
+        rates_df = CSV.File(rates_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
+        probs_df = CSV.File(probs_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
+
+        return rates_df, probs_df
+    catch e
+        println("Error reading the files: $e")
+        return DataFrame(), DataFrame()  # Return empty DataFrames in case of an error
+    end
+end
+
+
+function join_rates(rates_df::DataFrame, probs_df::DataFrame)
+    try
+        # Join DataFrames based on the "Position" column using inner join
+        merged_df = innerjoin(rates_df, probs_df, on=:Position, makeunique=true)
+
+        # Drop the unwanted columns
+        select!(merged_df, Not(:Original_Base_1, :Variant_Base_1))
+        
+        return merged_df
+    catch e
+        println("Error joining DataFrames: $e")
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
+end
+
 # add evolution rates and Pr(fixation) data from model
 function add_new_data(folder_path::AbstractString)
     # Call find_rates to get rates_df and probs_df
