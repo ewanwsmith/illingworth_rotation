@@ -438,44 +438,22 @@ function pull_translate_codons(folder::String)
 end
 
 function find_rates(folder_path::AbstractString)
-    # Construct the full path to the Mean_rates.dat file
+    # Construct the full path to the Mean_rates.txt file
     rates_path = joinpath(folder_path, "Mean_rates.txt")
-    probs_path = joinpath(folder_path, "Fixation_probabilities.txt") 
+    probs_path = joinpath(folder_path, "Fixation_probabilities.txt")
 
-    delimiters = ['\t', ' ']
+    try
+        # Try reading the files with CSV.File and tab delimiter
+        rates_df = CSV.File(rates_path, delim='\t', types=[Int, String, String, Float64], header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
+        probs_df = CSV.File(probs_path, delim='\t', types=[Int, String, String, Float64], header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
 
-    for delimiter in delimiters
-        try
-            # Try reading the files with the current delimiter using CSV.File
-            rates_df = CSV.File(rates_path, delim=delimiter, header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
-            probs_df = CSV.File(probs_path, delim=delimiter, header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
-
-            # Apply true_to_T() to the dataframes
-            rates_df = true_to_T(rates_df)
-            probs_df = true_to_T(probs_df)
-
-            return rates_df, probs_df
-        catch e_csv
-            try
-                # If CSV.File fails, try reading with the current delimiter using readdlm
-                rates_df = DelimitedFiles.readdlm(rates_path, Any, delimiter) |> DataFrame
-                probs_df = DelimitedFiles.readdlm(probs_path, Any, delimiter) |> DataFrame
-
-                # Apply true_to_T() to the dataframes
-                rates_df = true_to_T(rates_df)
-                probs_df = true_to_T(probs_df)
-
-                return rates_df, probs_df
-            catch e_readdlm
-                # If both attempts fail, print error messages and continue to the next delimiter
-                println("Error reading with CSV.File and delimiter $delimiter: $e_csv")
-                println("Error reading with readdlm and delimiter $delimiter: $e_readdlm")
-            end
-        end
+        return rates_df, probs_df
+    catch e
+        # If there is an error, print an error message
+        println("Error reading the files: $e")
     end
 
-    # If no successful read, print an error message and return empty DataFrames
-    println("Error reading the files. Could not determine the delimiter.")
+    # If no successful read, return empty DataFrames
     return DataFrame(), DataFrame()
 end
 
