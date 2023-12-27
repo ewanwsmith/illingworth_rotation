@@ -1,6 +1,5 @@
 {
     "githubPullRequests.ignoredPullRequestBranches": [
         "master"
-    ],
-    "julia.environmentPath": "/Users/ewansmith/Documents/PhD/Rotation 1 - Illingworth/illingworth_rotation"
+    ]
 }
