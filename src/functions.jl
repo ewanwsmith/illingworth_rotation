@@ -441,20 +441,28 @@ function find_rates(folder_path::AbstractString)
     rates_path = joinpath(folder_path, "Mean_rates.dat")
     probs_path = joinpath(folder_path, "Fixation_probabilities.dat") 
 
-    try
-        # Read the tab-delimited text files into DataFrames
-        rates_df = CSV.File(rates_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
-        probs_df = CSV.File(probs_path, delim='\t', header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
+    delimiters = ['\t', ' ']
 
-        # Apply true_to_T() to the dataframes
-        rates_df = true_to_T(rates_df)
-        probs_df = true_to_T(probs_df)
+    for delimiter in delimiters
+        try
+            # Read the text files into DataFrames with the specified delimiter
+            rates_df = CSV.File(rates_path, delim=delimiter, header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
+            probs_df = CSV.File(probs_path, delim=delimiter, header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
 
-        return rates_df, probs_df
-    catch e
-        println("Error reading the files: $e")
-        return DataFrame(), DataFrame()  # Return empty DataFrames in case of an error
+            # Apply true_to_T() to the dataframes
+            rates_df = true_to_T(rates_df)
+            probs_df = true_to_T(probs_df)
+
+            return rates_df, probs_df
+        catch e
+            # Print an error message if the current delimiter failed
+            println("Error reading with delimiter $delimiter: $e")
+        end
     end
+
+    # If no successful read, return empty DataFrames
+    println("Error reading the files. Could not determine the delimiter.")
+    return DataFrame(), DataFrame()
 end
 
 
