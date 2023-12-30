@@ -1,0 +1,26 @@
+{
+    "id": "10D61E9A",
+    "path": "~/Illingworth/Illingworth_rotation_RStudio/src/rates_analysis.R",
+    "project_path": "src/rates_analysis.R",
+    "type": "r_source",
+    "hash": "1239989225",
+    "contents": "",
+    "dirty": false,
+    "created": 1703953006462.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "27,21",
+        "scrollLine": "4"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1703955547,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1703955547222,
+    "read_only": false,
+    "read_only_alternatives": []
+}
