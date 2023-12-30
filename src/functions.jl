@@ -5,6 +5,7 @@ using DataFrames
 using CSV
 using FASTX
 using BioSequences
+using DelimitedFiles
 
 
 # read in reference ORF fasta
@@ -185,7 +186,6 @@ function find_genes(folder::String)
     return df
 end
 
-# read in variants_list.csv
 function readin_variants(folder_path::AbstractString)
     # Construct the full path to the Variant_list.csv file
     file_path = joinpath(folder_path, "Variant_list.csv")
@@ -193,6 +193,15 @@ function readin_variants(folder_path::AbstractString)
     try
         # Try to read the CSV file into a DataFrame
         variants_df = CSV.File(file_path) |> DataFrame
+        
+        # Convert Variant_Base and Original_Base to String1
+        variants_df[!, :Variant_Base] .= string.(variants_df[!, :Variant_Base])
+        variants_df[!, :Original_Base] .= string.(variants_df[!, :Original_Base])
+        
+        # Replace "true" with "T" in Original_Base and Variant_Base columns
+        variants_df[!, :Original_Base] .= replace.(variants_df[!, :Original_Base], "true" => "T")
+        variants_df[!, :Variant_Base] .= replace.(variants_df[!, :Variant_Base], "true" => "T")
+        
         return variants_df
     catch e
         # Handle the case when the file is not found or there is an error in reading
@@ -201,6 +210,7 @@ function readin_variants(folder_path::AbstractString)
         return DataFrame()  # Return an empty DataFrame in case of an error
     end
 end
+
 
 # read variants, find the ORFs they sit in
 function locate_variants(variants_df::DataFrame, frames_df::DataFrame)
@@ -386,8 +396,18 @@ function translate_codons(df)
     return df
 end
 
-# run above functions
+#T bases keep being mistaken for "True", so explicitly correct
+function true_to_T(df::DataFrame)
+    # Replace "true" with "T" in Original_Base column
+    df[!, :Original_Base] .= replace.(df[!, :Original_Base], "true" => "T")
+    
+    # Replace "true" with "T" in Variant_Base column
+    df[!, :Variant_Base] .= replace.(df[!, :Variant_Base], "true" => "T")
+    
+    return df
+end
 
+# run above functions
 function pull_translate_codons(folder::String)
     println("Running readin_consensus() function on folder: $folder")
     df = readin_consensus(folder) #readin fasta file
@@ -397,6 +417,9 @@ function pull_translate_codons(folder::String)
     df = pull_proteins(df, positions_df) #pull genes out from consensus sequences
     println("Running locate_variants() function on folder: $folder")
     df = locate_variants(var, df) #find variants in ORFs
+
+    println("running true_to_T() function on folder: $folder")
+    df = true_to_T(df) # fix true / T issue 
 
     println("Running substitute_variants() function on folder: $folder")
     df = substitute_variants(df) #create variant_sequence
@@ -412,4 +435,85 @@ function pull_translate_codons(folder::String)
     CSV.write(csv_path, df) #write results to a CSV in sample folder
 
     return df
+end
+
+function find_rates(folder_path::AbstractString)
+    # Construct the full path to the Mean_rates.txt file
+    rates_path = joinpath(folder_path, "Mean_rates.txt")
+    probs_path = joinpath(folder_path, "Fixation_probabilities.txt")
+
+    try
+        # Try reading the files with CSV.File and tab delimiter
+        rates_df = CSV.File(rates_path, delim='\t', types=[Int, String, String, Float64], header=["Position", "Original_Base", "Variant_Base", "Evo_rate"]) |> DataFrame
+        probs_df = CSV.File(probs_path, delim='\t', types=[Int, String, String, Float64], header=["Position", "Original_Base", "Variant_Base", "Pr_fixation"]) |> DataFrame
+
+        return rates_df, probs_df
+    catch e
+        # If there is an error, print an error message
+        println("Error reading the files: $e")
+    end
+
+    # If no successful read, return empty DataFrames
+    return DataFrame(), DataFrame()
+end
+
+
+function join_rates(rates_df::DataFrame, probs_df::DataFrame)
+    try
+        # Join DataFrames based on the "Position" column using inner join
+        merged_df = innerjoin(rates_df, probs_df, on=:Position, makeunique=true)
+
+        # Drop the unwanted columns
+        select!(merged_df, Not(:Original_Base_1, :Variant_Base_1))
+        
+        return merged_df
+    catch e
+        println("Error joining DataFrames: $e")
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
+end
+
+# add evolution rates and Pr(fixation) data from model
+function add_new_data(folder_path::AbstractString)
+    # Call find_rates to get rates_df and probs_df
+    rates_df, probs_df = find_rates(folder_path)
+
+    # Check if find_rates encountered an error
+    if isempty(rates_df) || isempty(probs_df)
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
+
+    try
+        # Join DataFrames based on the "Position" column using inner join
+        merged_df = innerjoin(rates_df, probs_df, on=:Position, makeunique=true)
+
+        # Drop the unwanted columns
+        select!(merged_df, Not(:Original_Base_1, :Variant_Base_1))
+
+        # Construct the full path to the codons.csv file
+        codons_path = joinpath(folder_path, "codons.csv")
+
+        # Read the codons.csv file into a DataFrame
+        codons_df = CSV.File(codons_path) |> DataFrame
+
+        # Adjust the Position values in the merged_df
+        merged_df.Position .= merged_df.Position .+ 2
+
+        # Join DataFrames based on the adjusted "Position" and "Variant_Position" columns
+        final_merged_df = innerjoin(merged_df, codons_df, on=:Position => :Variant_Position, makeunique=true)
+
+        # Drop the additional columns
+        select!(final_merged_df, Not(:Original_Base_1, :Variant_Base_1))
+
+        # Display the modified DataFrame
+        display(final_merged_df)
+
+        # Save the final merged DataFrame as codons.csv in the specified folder
+        CSV.write(codons_path, final_merged_df)
+
+        return final_merged_df
+    catch e
+        println("Error reading or joining DataFrames: $e")
+        return DataFrame()  # Return an empty DataFrame in case of an error
+    end
 end
