@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='Standard' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood" required="BEAST.base v2.7.6:ORC v1.2.0:BEASTLabs v2.0.2" version="2.7">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='Standard' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood" required="BEAST.base v2.7.6" version="2.7">
 
     <data
 id="Sequences"
@@ -95,12 +95,11 @@ Sequence20=2020-08-21
                 </trait>
                 <taxonset idref="TaxonSet.Sequences"/>
             </tree>
-            <parameter id="birthRate.t:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
             <parameter id="kappa.s:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
             <parameter id="freqParameter.s:Sequences" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
-            <parameter id="ORCucldMean.c:Sequences" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
-            <parameter id="ORCsigma.c:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.2</parameter>
-            <parameter id="ORCRates.c:Sequences" spec="parameter.RealParameter" dimension="38" lower="1.0E-100" name="stateNode">0.5</parameter>
+            <parameter id="mutationRate.s:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="clockRate.c:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+            <parameter id="popSize.t:Sequences" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.3</parameter>
         </state>
         <init id="RandomTree.t:Sequences" spec="RandomTree" estimate="false" initial="@Tree.t:Sequences" taxa="@Sequences">
             <populationModel id="ConstantPopulation0.t:Sequences" spec="ConstantPopulation">
@@ -109,26 +108,15 @@ Sequence20=2020-08-21
         </init>
         <distribution id="posterior" spec="CompoundDistribution">
             <distribution id="prior" spec="CompoundDistribution">
-                <distribution id="YuleModel.t:Sequences" spec="beast.base.evolution.speciation.YuleModel" birthDiffRate="@birthRate.t:Sequences" tree="@Tree.t:Sequences"/>
-                <prior id="ORCRatePriorDistribution.c:Sequences" name="distribution" x="@ORCRates.c:Sequences">
-                    <LogNormal id="LogNormalDistributionModel.1" S="@ORCsigma.c:Sequences" meanInRealSpace="true" name="distr">
-                        <parameter id="RealParameter.5" spec="parameter.RealParameter" estimate="false" name="M">1.0</parameter>
+                <distribution id="CoalescentConstant.t:Sequences" spec="Coalescent">
+                    <populationModel id="ConstantPopulation.t:Sequences" spec="ConstantPopulation" popSize="@popSize.t:Sequences"/>
+                    <treeIntervals id="TreeIntervals.t:Sequences" spec="beast.base.evolution.tree.TreeIntervals" tree="@Tree.t:Sequences"/>
+                </distribution>
+                <prior id="ClockPrior.c:Sequences" name="distribution" x="@clockRate.c:Sequences">
+                    <LogNormal id="LogNormalDistributionModel.2" name="distr">
+                        <parameter id="RealParameter.8" spec="parameter.RealParameter" estimate="false" name="M">-5.0</parameter>
+                        <parameter id="RealParameter.9" spec="parameter.RealParameter" estimate="false" lower="0.0" name="S" upper="5.0">1.25</parameter>
                     </LogNormal>
-                </prior>
-                <prior id="ORCsigmaPrior.c:Sequences" name="distribution" x="@ORCsigma.c:Sequences">
-                    <Gamma id="Gamma.0" name="distr">
-                        <parameter id="RealParameter.6" spec="parameter.RealParameter" estimate="false" name="alpha">5.0</parameter>
-                        <parameter id="RealParameter.7" spec="parameter.RealParameter" estimate="false" name="beta">0.05</parameter>
-                    </Gamma>
-                </prior>
-                <prior id="ORCucldMeanPrior.c:Sequences" name="distribution" x="@ORCucldMean.c:Sequences">
-                    <Gamma id="Gamma.1" name="distr">
-                        <alpha id="Function$Constant.0" spec="Function$Constant" value="0.1"/>
-                        <beta id="Function$Constant.1" spec="Function$Constant" value="100.0"/>
-                    </Gamma>
-                </prior>
-                <prior id="YuleBirthRatePrior.t:Sequences" name="distribution" x="@birthRate.t:Sequences">
-                    <Uniform id="Uniform.1" name="distr" upper="Infinity"/>
                 </prior>
                 <prior id="FrequenciesPrior.s:Sequences" name="distribution" x="@freqParameter.s:Sequences">
                     <distr id="Dirichlet.0" spec="distribution.Dirichlet">
@@ -141,35 +129,23 @@ Sequence20=2020-08-21
                         <parameter id="RealParameter.2" spec="parameter.RealParameter" estimate="false" name="S">1.25</parameter>
                     </LogNormal>
                 </prior>
+                <prior id="PopSizePrior.t:Sequences" name="distribution" x="@popSize.t:Sequences">
+                    <OneOnX id="OneOnX.1" name="distr"/>
+                </prior>
             </distribution>
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 <distribution id="treeLikelihood.Sequences" spec="ThreadedTreeLikelihood" data="@Sequences" tree="@Tree.t:Sequences">
-                    <siteModel id="SiteModel.s:Sequences" spec="SiteModel">
-                        <parameter id="mutationRate.s:Sequences" spec="parameter.RealParameter" estimate="false" lower="0.0" name="mutationRate">1.0</parameter>
+                    <siteModel id="SiteModel.s:Sequences" spec="SiteModel" mutationRate="@mutationRate.s:Sequences">
                         <parameter id="gammaShape.s:Sequences" spec="parameter.RealParameter" estimate="false" lower="0.1" name="shape">1.0</parameter>
                         <parameter id="proportionInvariant.s:Sequences" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
                         <substModel id="hky.s:Sequences" spec="HKY" kappa="@kappa.s:Sequences">
                             <frequencies id="estimatedFreqs.s:Sequences" spec="Frequencies" frequencies="@freqParameter.s:Sequences"/>
                         </substModel>
                     </siteModel>
-                    <branchRateModel id="OptimisedRelaxedClock.c:Sequences" spec="beast.base.evolution.branchratemodel.UCRelaxedClockModel" clock.rate="@ORCucldMean.c:Sequences" rates="@ORCRates.c:Sequences" tree="@Tree.t:Sequences">
-                        <LogNormal id="ORCLogNormalDistributionModel.c:Sequences" S="@ORCsigma.c:Sequences" meanInRealSpace="true" name="distr">
-                            <parameter id="RealParameter.4" spec="parameter.RealParameter" estimate="false" name="M">1.0</parameter>
-                        </LogNormal>
-                    </branchRateModel>
+                    <branchRateModel id="StrictClock.c:Sequences" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c:Sequences"/>
                 </distribution>
             </distribution>
         </distribution>
-        <operator id="YuleBirthRateScaler.t:Sequences" spec="kernel.BactrianScaleOperator" parameter="@birthRate.t:Sequences" upper="10.0" weight="3.0"/>
-        <operator id="YuleModelTreeRootScaler.t:Sequences" spec="kernel.BactrianScaleOperator" rootOnly="true" scaleFactor="0.5" tree="@Tree.t:Sequences" upper="10.0" weight="3.0"/>
-        <operator id="YuleModelUniformOperator.t:Sequences" spec="kernel.BactrianNodeOperator" tree="@Tree.t:Sequences" weight="30.0"/>
-        <operator id="YuleModelSubtreeSlide.t:Sequences" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:Sequences" weight="15.0"/>
-        <operator id="YuleModelNarrow.t:Sequences" spec="Exchange" tree="@Tree.t:Sequences" weight="15.0"/>
-        <operator id="YuleModelWide.t:Sequences" spec="Exchange" isNarrow="false" tree="@Tree.t:Sequences" weight="3.0"/>
-        <operator id="YuleModelWilsonBalding.t:Sequences" spec="WilsonBalding" tree="@Tree.t:Sequences" weight="3.0"/>
-        <operator id="YuleModelBICEPSEpochTop.t:Sequences" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:Sequences" weight="2.0"/>
-        <operator id="YuleModelBICEPSEpochAll.t:Sequences" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:Sequences" weight="2.0"/>
-        <operator id="YuleModelBICEPSTreeFlex.t:Sequences" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:Sequences" weight="2.0"/>
         <operator id="KappaScaler.s:Sequences" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="kappa.s:Sequences"/>
             <operator id="AVMNOperator.Sequences" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="0.1">
@@ -178,6 +154,7 @@ Sequence20=2020-08-21
                 </transformations>
                 <transformations id="AVMNLogTransform.Sequences" spec="operator.kernel.Transform$LogTransform">
                     <f idref="kappa.s:Sequences"/>
+                    <f idref="clockRate.c:Sequences"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.Sequences" spec="operator.kernel.Transform$NoTransform">
                     <f idref="Tree.t:Sequences"/>
@@ -192,67 +169,46 @@ Sequence20=2020-08-21
                 <parameter idref="freqParameter.s:Sequences"/>
             </operator>
         </operator>
-        <operator id="ORCucldMeanScaler.c:Sequences" spec="ScaleOperator" parameter="@ORCucldMean.c:Sequences" scaleFactor="0.5" weight="3.0"/>
-        <operator id="ORC.UpDown.c:Sequences" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.75" weight="3.0">
-            <up idref="ORCucldMean.c:Sequences"/>
-            <down idref="Tree.t:Sequences"/>
+        <operator id="FixMeanMutationRatesOperator" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.75" weight="2.0">
+            <parameter idref="mutationRate.s:Sequences"/>
+            <weightvector id="weightparameter" spec="parameter.IntegerParameter" estimate="false" lower="0" upper="0">29903</weightvector>
         </operator>
-        <operator id="ORCAdaptableOperatorSampler_sigma.c:Sequences" spec="AdaptableOperatorSampler" weight="3.0">
-            <parameter idref="ORCsigma.c:Sequences"/>
-            <operator id="ORCucldStdevScaler.c:Sequences" spec="orc.consoperators.UcldScalerOperator" distr="@ORCLogNormalDistributionModel.c:Sequences" rates="@ORCRates.c:Sequences" scaleFactor="0.5" stdev="@ORCsigma.c:Sequences" weight="1.0">
-                <kernel id="KernelDistribution$Bactrian.17" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCUcldStdevRandomWalk.c:Sequences" spec="operator.kernel.BactrianRandomWalkOperator" parameter="@ORCsigma.c:Sequences" scaleFactor="0.1" weight="1.0">
-                <kernelDistribution id="KernelDistribution$Bactrian.18" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCUcldStdevScale.c:Sequences" spec="kernel.BactrianScaleOperator" parameter="@ORCsigma.c:Sequences" scaleFactor="0.5" upper="10.0" weight="1.0">
-                <kernelDistribution id="KernelDistribution$Bactrian.19" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCSampleFromPriorOperator_sigma.c:Sequences" spec="orc.operators.SampleFromPriorOperator" parameter="@ORCsigma.c:Sequences" prior2="@ORCsigmaPrior.c:Sequences" weight="1.0"/>
+        <operator id="StrictClockRateScaler.c:Sequences" spec="AdaptableOperatorSampler" weight="1.5">
+            <parameter idref="clockRate.c:Sequences"/>
+            <operator idref="AVMNOperator.Sequences"/>
+            <operator id="StrictClockRateScalerX.c:Sequences" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c:Sequences" upper="10.0" weight="3.0"/>
         </operator>
-        <operator id="ORCAdaptableOperatorSampler_rates_root.c:Sequences" spec="AdaptableOperatorSampler" weight="1.0">
-            <parameter idref="ORCRates.c:Sequences"/>
+        <operator id="strictClockUpDownOperator.c:Sequences" spec="AdaptableOperatorSampler" weight="1.5">
+            <parameter idref="clockRate.c:Sequences"/>
             <tree idref="Tree.t:Sequences"/>
-            <operator id="ORCRootOperator1.c:Sequences" spec="orc.consoperators.SimpleDistance" clockModel="@OptimisedRelaxedClock.c:Sequences" rates="@ORCRates.c:Sequences" tree="@Tree.t:Sequences" twindowSize="0.005" weight="1.0">
-                <kernel id="KernelDistribution$Bactrian.20" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCRootOperator2.c:Sequences" spec="orc.consoperators.SmallPulley" clockModel="@OptimisedRelaxedClock.c:Sequences" dwindowSize="0.005" rates="@ORCRates.c:Sequences" tree="@Tree.t:Sequences" weight="1.0">
-                <kernel id="KernelDistribution$Bactrian.21" spec="operator.kernel.KernelDistribution$Bactrian"/>
+            <operator idref="AVMNOperator.Sequences"/>
+            <operator id="strictClockUpDownOperatorX.c:Sequences" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.75" weight="3.0">
+                <up idref="clockRate.c:Sequences"/>
+                <down idref="Tree.t:Sequences"/>
             </operator>
         </operator>
-        <operator id="ORCAdaptableOperatorSampler_rates_internal.c:Sequences" spec="AdaptableOperatorSampler" weight="20.0">
-            <parameter idref="ORCRates.c:Sequences"/>
-            <tree idref="Tree.t:Sequences"/>
-            <operator id="ORCInternalnodesOperator.c:Sequences" spec="orc.consoperators.InConstantDistanceOperator" clockModel="@OptimisedRelaxedClock.c:Sequences" rates="@ORCRates.c:Sequences" tree="@Tree.t:Sequences" twindowSize="0.005" weight="1.0">
-                <kernel id="KernelDistribution$Bactrian.22" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCRatesRandomWalk.c:Sequences" spec="operator.kernel.BactrianRandomWalkOperator" parameter="@ORCRates.c:Sequences" scaleFactor="0.1" weight="1.0">
-                <kernelDistribution id="KernelDistribution$Bactrian.23" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCRatesScale.c:Sequences" spec="kernel.BactrianScaleOperator" parameter="@ORCRates.c:Sequences" scaleFactor="0.5" upper="10.0" weight="1.0">
-                <kernelDistribution id="KernelDistribution$Bactrian.24" spec="operator.kernel.KernelDistribution$Bactrian"/>
-            </operator>
-            <operator id="ORCSampleFromPriorOperator.rates.c:Sequences" spec="orc.operators.SampleFromPriorOperator" parameter="@ORCRates.c:Sequences" prior2="@ORCRatePriorDistribution.c:Sequences" weight="1.0"/>
-        </operator>
-        <operator id="ORCAdaptableOperatorSampler_NER.c:Sequences" spec="AdaptableOperatorSampler" weight="10.0">
-            <tree idref="Tree.t:Sequences"/>
-            <operator id="ORCNER_null.c:Sequences" spec="Exchange" tree="@Tree.t:Sequences" weight="1.0"/>
-            <operator id="ORCNER_dAE_dBE_dCE.c:Sequences" spec="orc.ner.NEROperator_dAE_dBE_dCE" rates="@ORCRates.c:Sequences" tree="@Tree.t:Sequences" weight="1.0"/>
-            <metric id="RNNIMetric.0" spec="beastlabs.evolution.tree.RNNIMetric" taxonset="@TaxonSet.Sequences"/>
-        </operator>
+        <operator id="CoalescentConstantBICEPSEpochTop.t:Sequences" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:Sequences" weight="2.0"/>
+        <operator id="CoalescentConstantBICEPSEpochAll.t:Sequences" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:Sequences" weight="2.0"/>
+        <operator id="CoalescentConstantBICEPSTreeFlex.t:Sequences" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:Sequences" weight="2.0"/>
+        <operator id="CoalescentConstantTreeRootScaler.t:Sequences" spec="kernel.BactrianScaleOperator" rootOnly="true" scaleFactor="0.1" tree="@Tree.t:Sequences" upper="10.0" weight="3.0"/>
+        <operator id="CoalescentConstantUniformOperator.t:Sequences" spec="kernel.BactrianNodeOperator" tree="@Tree.t:Sequences" weight="30.0"/>
+        <operator id="CoalescentConstantSubtreeSlide.t:Sequences" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:Sequences" weight="15.0"/>
+        <operator id="CoalescentConstantNarrow.t:Sequences" spec="Exchange" tree="@Tree.t:Sequences" weight="15.0"/>
+        <operator id="CoalescentConstantWide.t:Sequences" spec="Exchange" isNarrow="false" tree="@Tree.t:Sequences" weight="3.0"/>
+        <operator id="CoalescentConstantWilsonBalding.t:Sequences" spec="WilsonBalding" tree="@Tree.t:Sequences" weight="3.0"/>
+        <operator id="PopSizeScaler.t:Sequences" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:Sequences" upper="10.0" weight="3.0"/>
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="1000" model="@posterior" sanitiseHeaders="true" sort="smart">
             <log idref="posterior"/>
             <log idref="likelihood"/>
             <log idref="prior"/>
             <log idref="treeLikelihood.Sequences"/>
             <log id="TreeHeight.t:Sequences" spec="beast.base.evolution.tree.TreeStatLogger" tree="@Tree.t:Sequences"/>
-            <log idref="YuleModel.t:Sequences"/>
-            <log idref="birthRate.t:Sequences"/>
             <log idref="kappa.s:Sequences"/>
             <log idref="freqParameter.s:Sequences"/>
-            <log idref="ORCucldMean.c:Sequences"/>
-            <log idref="ORCsigma.c:Sequences"/>
-            <log id="ORCRatesStat.c:Sequences" spec="beast.base.evolution.RateStatistic" branchratemodel="@OptimisedRelaxedClock.c:Sequences" tree="@Tree.t:Sequences"/>
+            <log idref="mutationRate.s:Sequences"/>
+            <log idref="clockRate.c:Sequences"/>
+            <log idref="popSize.t:Sequences"/>
+            <log idref="CoalescentConstant.t:Sequences"/>
         </logger>
         <logger id="screenlog" spec="Logger" logEvery="1000">
             <log idref="posterior"/>
@@ -260,7 +216,7 @@ Sequence20=2020-08-21
             <log idref="prior"/>
         </logger>
         <logger id="treelog.t:Sequences" spec="Logger" fileName="$(filebase)-$(tree).trees" logEvery="1000" mode="tree">
-            <log id="TreeWithMetaDataLogger.t:Sequences" spec="beast.base.evolution.TreeWithMetaDataLogger" branchratemodel="@OptimisedRelaxedClock.c:Sequences" tree="@Tree.t:Sequences"/>
+            <log id="TreeWithMetaDataLogger.t:Sequences" spec="beast.base.evolution.TreeWithMetaDataLogger" tree="@Tree.t:Sequences"/>
         </logger>
         <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
     </run>
