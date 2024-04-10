@@ -95,10 +95,10 @@ Day100_2=100
                 </trait>
                 <taxonset idref="TaxonSet.Kemp"/>
             </tree>
-            <parameter id="birthRate.t:Kemp" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
             <parameter id="clockRate.c:Kemp" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
             <parameter id="kappa.s:Kemp" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
             <parameter id="freqParameter.s:Kemp" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="popSize.t:Kemp" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.3</parameter>
         </state>
         <init id="RandomTree.t:Kemp" spec="RandomTree" estimate="false" initial="@Tree.t:Kemp" taxa="@Kemp">
             <populationModel id="ConstantPopulation0.t:Kemp" spec="ConstantPopulation">
@@ -107,12 +107,15 @@ Day100_2=100
         </init>
         <distribution id="posterior" spec="CompoundDistribution">
             <distribution id="prior" spec="CompoundDistribution">
-                <distribution id="YuleModel.t:Kemp" spec="beast.base.evolution.speciation.YuleModel" birthDiffRate="@birthRate.t:Kemp" tree="@Tree.t:Kemp"/>
-                <prior id="YuleBirthRatePrior.t:Kemp" name="distribution" x="@birthRate.t:Kemp">
-                    <Uniform id="Uniform.1" name="distr" upper="Infinity"/>
-                </prior>
+                <distribution id="CoalescentConstant.t:Kemp" spec="Coalescent">
+                    <populationModel id="ConstantPopulation.t:Kemp" spec="ConstantPopulation" popSize="@popSize.t:Kemp"/>
+                    <treeIntervals id="TreeIntervals.t:Kemp" spec="beast.base.evolution.tree.TreeIntervals" tree="@Tree.t:Kemp"/>
+                </distribution>
                 <prior id="ClockPrior.c:Kemp" name="distribution" x="@clockRate.c:Kemp">
-                    <Uniform id="Uniform.0" name="distr" upper="Infinity"/>
+                    <LogNormal id="LogNormalDistributionModel.1" name="distr">
+                        <parameter id="RealParameter.4" spec="parameter.RealParameter" estimate="false" name="M">-5.0</parameter>
+                        <parameter id="RealParameter.5" spec="parameter.RealParameter" estimate="false" lower="0.0" name="S" upper="5.0">1.25</parameter>
+                    </LogNormal>
                 </prior>
                 <prior id="FrequenciesPrior.s:Kemp" name="distribution" x="@freqParameter.s:Kemp">
                     <distr id="Dirichlet.0" spec="distribution.Dirichlet">
@@ -124,6 +127,9 @@ Day100_2=100
                         <parameter id="RealParameter.1" spec="parameter.RealParameter" estimate="false" name="M">1.0</parameter>
                         <parameter id="RealParameter.2" spec="parameter.RealParameter" estimate="false" name="S">1.25</parameter>
                     </LogNormal>
+                </prior>
+                <prior id="PopSizePrior.t:Kemp" name="distribution" x="@popSize.t:Kemp">
+                    <OneOnX id="OneOnX.1" name="distr"/>
                 </prior>
                 <distribution id="Root.prior" spec="beast.base.evolution.tree.MRCAPrior" monophyletic="true" tree="@Tree.t:Kemp">
                     <taxonset id="Root" spec="TaxonSet">
@@ -145,16 +151,6 @@ Day100_2=100
                 </distribution>
             </distribution>
         </distribution>
-        <operator id="YuleBirthRateScaler.t:Kemp" spec="kernel.BactrianScaleOperator" parameter="@birthRate.t:Kemp" upper="10.0" weight="3.0"/>
-        <operator id="YuleModelTreeRootScaler.t:Kemp" spec="kernel.BactrianScaleOperator" rootOnly="true" scaleFactor="0.5" tree="@Tree.t:Kemp" upper="10.0" weight="3.0"/>
-        <operator id="YuleModelUniformOperator.t:Kemp" spec="kernel.BactrianNodeOperator" tree="@Tree.t:Kemp" weight="30.0"/>
-        <operator id="YuleModelSubtreeSlide.t:Kemp" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:Kemp" weight="15.0"/>
-        <operator id="YuleModelNarrow.t:Kemp" spec="Exchange" tree="@Tree.t:Kemp" weight="15.0"/>
-        <operator id="YuleModelWide.t:Kemp" spec="Exchange" isNarrow="false" tree="@Tree.t:Kemp" weight="3.0"/>
-        <operator id="YuleModelWilsonBalding.t:Kemp" spec="WilsonBalding" tree="@Tree.t:Kemp" weight="3.0"/>
-        <operator id="YuleModelBICEPSEpochTop.t:Kemp" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:Kemp" weight="2.0"/>
-        <operator id="YuleModelBICEPSEpochAll.t:Kemp" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:Kemp" weight="2.0"/>
-        <operator id="YuleModelBICEPSTreeFlex.t:Kemp" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:Kemp" weight="2.0"/>
         <operator id="StrictClockRateScaler.c:Kemp" spec="AdaptableOperatorSampler" weight="1.5">
             <parameter idref="clockRate.c:Kemp"/>
             <operator id="AVMNOperator.Kemp" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="0.1">
@@ -192,18 +188,28 @@ Day100_2=100
                 <parameter idref="freqParameter.s:Kemp"/>
             </operator>
         </operator>
+        <operator id="CoalescentConstantBICEPSEpochTop.t:Kemp" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:Kemp" weight="2.0"/>
+        <operator id="CoalescentConstantBICEPSEpochAll.t:Kemp" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:Kemp" weight="2.0"/>
+        <operator id="CoalescentConstantBICEPSTreeFlex.t:Kemp" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:Kemp" weight="2.0"/>
+        <operator id="CoalescentConstantTreeRootScaler.t:Kemp" spec="kernel.BactrianScaleOperator" rootOnly="true" scaleFactor="0.1" tree="@Tree.t:Kemp" upper="10.0" weight="3.0"/>
+        <operator id="CoalescentConstantUniformOperator.t:Kemp" spec="kernel.BactrianNodeOperator" tree="@Tree.t:Kemp" weight="30.0"/>
+        <operator id="CoalescentConstantSubtreeSlide.t:Kemp" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:Kemp" weight="15.0"/>
+        <operator id="CoalescentConstantNarrow.t:Kemp" spec="Exchange" tree="@Tree.t:Kemp" weight="15.0"/>
+        <operator id="CoalescentConstantWide.t:Kemp" spec="Exchange" isNarrow="false" tree="@Tree.t:Kemp" weight="3.0"/>
+        <operator id="CoalescentConstantWilsonBalding.t:Kemp" spec="WilsonBalding" tree="@Tree.t:Kemp" weight="3.0"/>
+        <operator id="PopSizeScaler.t:Kemp" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:Kemp" upper="10.0" weight="3.0"/>
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="1000" model="@posterior" sanitiseHeaders="true" sort="smart">
             <log idref="posterior"/>
             <log idref="likelihood"/>
             <log idref="prior"/>
             <log idref="treeLikelihood.Kemp"/>
             <log id="TreeHeight.t:Kemp" spec="beast.base.evolution.tree.TreeStatLogger" tree="@Tree.t:Kemp"/>
-            <log idref="YuleModel.t:Kemp"/>
-            <log idref="birthRate.t:Kemp"/>
             <log idref="clockRate.c:Kemp"/>
             <log idref="kappa.s:Kemp"/>
             <log idref="freqParameter.s:Kemp"/>
             <log idref="Root.prior"/>
+            <log idref="popSize.t:Kemp"/>
+            <log idref="CoalescentConstant.t:Kemp"/>
         </logger>
         <logger id="screenlog" spec="Logger" logEvery="1000">
             <log idref="posterior"/>
