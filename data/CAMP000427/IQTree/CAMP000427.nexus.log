@@ -1,0 +1,126 @@
+IQ-TREE multicore version 1.6.12 for Mac OS X 64-bit built Aug 15 2019
+Developed by Bui Quang Minh, Nguyen Lam Tung, Olga Chernomor,
+Heiko Schmidt, Dominik Schrempf, Michael Woodhams.
+
+Host:    Ewans-MacBook-Air.local (AVX2, FMA3, 8 GB RAM)
+Command: /Applications/iqtree-1.6.12/bin/iqtree -s /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus -o Day0
+Seed:    660513 (Using SPRNG - Scalable Parallel Random Number Generator)
+Time:    Tue Apr  9 17:30:43 2024
+Kernel:  AVX+FMA - 1 threads (4 CPU cores detected)
+
+HINT: Use -nt option to specify number of threads because your CPU has 4 cores!
+HINT: -nt AUTO will automatically determine the best number of threads to use.
+
+Reading alignment file /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus ... Nexus format detected
+WARNING: 121 sites contain only gaps or ambiguous characters.
+Alignment has 5 sequences with 29903 columns, 25 distinct patterns
+0 parsimony-informative, 0 singleton sites, 29903 constant sites
+       Gap/Ambiguity  Composition  p-value
+   1  Day0     5.69%    passed     99.59%
+   2  Day20    0.40%    passed     99.92%
+   3  Day27    2.01%    passed     99.68%
+   4  Day32    0.41%    passed     99.92%
+   5  Day39    2.40%    passed    100.00%
+****  TOTAL    2.18%  0 sequences failed composition chi2 test (p-value<5%; df=3)
+
+
+Create initial parsimony tree by phylogenetic likelihood library (PLL)... 0.002 seconds
+NOTE: ModelFinder requires 0 MB RAM!
+ModelFinder will test 22 DNA models (sample size: 29903) ...
+ No. Model         -LnL         df  AIC          AICc         BIC
+  1  JC            41287.033    7   82588.066    82588.070    82646.206
+  2  F81+F         40403.172    10  80826.344    80826.351    80909.401
+  3  K2P           41287.033    8   82590.066    82590.071    82656.512
+  4  HKY+F         40403.172    11  80828.344    80828.353    80919.707
+  5  TNe           41287.033    9   82592.066    82592.072    82666.818
+  6  TN+F          40403.172    12  80830.344    80830.354    80930.012
+  7  K3P           41287.033    9   82592.066    82592.072    82666.818
+  8  K3Pu+F        40403.172    12  80830.344    80830.354    80930.012
+  9  TPM2+F        40403.172    12  80830.344    80830.354    80930.012
+ 10  TPM2u+F       40403.172    12  80830.344    80830.354    80930.012
+ 11  TPM3+F        40403.172    12  80830.344    80830.354    80930.012
+ 12  TPM3u+F       40403.172    12  80830.344    80830.354    80930.012
+ 13  TIMe          41287.033    10  82594.066    82594.074    82677.123
+ 14  TIM+F         40403.172    13  80832.344    80832.356    80940.318
+ 15  TIM2e         41287.033    10  82594.066    82594.073    82677.123
+ 16  TIM2+F        40403.172    13  80832.344    80832.356    80940.318
+ 17  TIM3e         41287.033    10  82594.066    82594.073    82677.123
+ 18  TIM3+F        40403.172    13  80832.344    80832.356    80940.318
+ 19  TVMe          41287.032    11  82596.064    82596.073    82687.427
+ 20  TVM+F         40403.172    14  80834.344    80834.358    80950.624
+ 21  SYM           41287.032    12  82598.063    82598.074    82697.732
+ 22  GTR+F         40403.172    15  80836.344    80836.360    80960.930
+Akaike Information Criterion:           F81+F
+Corrected Akaike Information Criterion: F81+F
+Bayesian Information Criterion:         F81+F
+Best-fit model: F81+F chosen according to BIC
+
+All model information printed to /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus.model.gz
+CPU time for ModelFinder: 0.010 seconds (0h:0m:0s)
+Wall-clock time for ModelFinder: 0.033 seconds (0h:0m:0s)
+
+NOTE: 0 MB RAM (0 GB) is required!
+Estimate model parameters (epsilon = 0.100)
+1. Initial log-likelihood: -40403.172
+Optimal log-likelihood: -40403.172
+Rate parameters:  A-C: 1.00000  A-G: 1.00000  A-T: 1.00000  C-G: 1.00000  C-T: 1.00000  G-T: 1.00000
+Base frequencies:  A: 0.299  C: 0.184  G: 0.197  T: 0.321
+Parameters optimization took 1 rounds (0.001 sec)
+Computing ML distances based on estimated model parameters... 0.000 sec
+Computing BIONJ tree...
+0.007 seconds
+Log-likelihood of BIONJ tree: -40402.890
+--------------------------------------------------------------------
+|             INITIALIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Generating 98 parsimony trees... 0.014 second
+Computing log-likelihood of 13 initial trees ... 0.002 seconds
+Current best score: -40402.890
+
+Do NNI search on 15 best initial trees
+Iteration 10 / LogL: -40403.171 / Time: 0h:0m:0s
+Finish initializing candidate tree set (15)
+Current best tree score: -40402.890 / CPU time: 0.022
+Number of iterations: 15
+--------------------------------------------------------------------
+|               OPTIMIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+UPDATE BEST LOG-LIKELIHOOD: -40402.890
+Iteration 20 / LogL: -40402.890 / Time: 0h:0m:0s
+Iteration 30 / LogL: -40403.171 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -40402.890
+Iteration 40 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 50 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 60 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 70 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 80 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 90 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 100 / LogL: -40402.890 / Time: 0h:0m:0s (0h:0m:0s left)
+TREE SEARCH COMPLETED AFTER 101 ITERATIONS / Time: 0h:0m:0s
+
+--------------------------------------------------------------------
+|                    FINALIZING TREE SEARCH                        |
+--------------------------------------------------------------------
+Performs final model parameters optimization
+Estimate model parameters (epsilon = 0.010)
+1. Initial log-likelihood: -40402.890
+Optimal log-likelihood: -40402.890
+Rate parameters:  A-C: 1.00000  A-G: 1.00000  A-T: 1.00000  C-G: 1.00000  C-T: 1.00000  G-T: 1.00000
+Base frequencies:  A: 0.299  C: 0.184  G: 0.197  T: 0.321
+Parameters optimization took 1 rounds (0.000 sec)
+BEST SCORE FOUND : -40402.890
+Total tree length: 0.000
+
+Total number of iterations: 101
+CPU time used for tree search: 0.035 sec (0h:0m:0s)
+Wall-clock time used for tree search: 0.041 sec (0h:0m:0s)
+Total CPU time used: 0.045 sec (0h:0m:0s)
+Total wall-clock time used: 0.068 sec (0h:0m:0s)
+
+Analysis results written to: 
+  IQ-TREE report:                /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus.iqtree
+  Maximum-likelihood tree:       /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus.treefile
+  Likelihood distances:          /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus.mldist
+  Screen log file:               /Users/ewansmith/Documents/PhD/Rotation_1_Illingworth/illingworth_rotation/data/CAMP000427/IQTree/CAMP000427.nexus.log
+
+Date and Time: Tue Apr  9 17:30:43 2024
